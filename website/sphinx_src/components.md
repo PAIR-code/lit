@@ -23,30 +23,13 @@ out-of-the-box support for a few modeling frameworks, described below.
 
 Many of the
 [open-source LIT examples](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/) use
-HuggingFace Transformers via their TF2/Keras model classes. These give easy
+HuggingFace Transformers via their PyTorch model classes. These give easy
 access to model internals such as embeddings, attention, and gradients, and the
 LIT wrappers for these support many interpretability methods - such as
 [integrated gradients](https://arxiv.org/abs/1703.01365) out-of-the-box.
 
 These models are a great place to start for small-scale experiments or for
 working on academic projects.
-
-### TF1.x Estimator
-
-LIT supports Estimator and other TF1.x models, but the model wrappers can be
-more involved due to the need to explicitly manage the graph and sessions. (In
-particular: `Estimator.predict()` cannot be used because it reloads the model on
-every invocation.) Generally, you'll need to:
-
-*   In your model's `__init__()`, build the graph, create a persistent TF
-    session, and load the model weights.
-*   In your `predict()` function, build a feed dict and call `session.run`
-    directly.
-
-Alternatively, you can export to a `SavedModel` and load this in an eager mode
-runtime. This leads to much simpler code, but may require changes to your
-`SavedModel` exporter in order to access model internals like embeddings,
-gradients, or attention.
 
 ### Remote or hosted models
 
@@ -74,7 +57,7 @@ as LIME which involve querying the model on new examples.
 
 LIT can load data from almost any format, including TFRecord, Capacitor,
 SSTable, or even SQL queries, via a custom Python class that implements the
-[Dataset API](./api.md#datasets). Many of our demos use TFDS, and the LIT loader
+[Dataset API](./api.md#datasets). Many of our demos use [HuggingFace datasets](https://huggingface.co/docs/datasets), and the LIT loader
 code is only a small wrapper class which performs minimal post-processing. See
 the [demos page](./demos.md) for specific examples.
 
@@ -462,14 +445,12 @@ If you find this useful in your work, please cite Sequence Salience as:
 **Code:**
 
 Currently, this works out-of-the-box with Gemma, Llama 2, Mistral, and GPT-2,
-using either KerasNLP or Transformers.
+using HuggingFace Transformers.
 
 *   LIT-for-Gemma Colab:
     [`lit_gemma.ipynb`](https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb)
 *   Demo binary:
     https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/server.py
-*   KerasNLP model wrappers:
-    https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/keras_lms.py
 *   Transformers model wrappers:
     https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/transformers_lms.py
 

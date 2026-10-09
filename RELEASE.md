@@ -1,6 +1,35 @@
 # Learning Interpretability Tool Release Notes
 
 
+## Release 1.4
+
+This release completes the migration of LIT's bundled models, examples, and
+dependencies from TensorFlow to PyTorch. TensorFlow is no longer a required or
+supported dependency of any LIT example.
+
+### Breaking changes
+* GLUE models (`examples/glue`) are now implemented with PyTorch
+  (`AutoModelForSequenceClassification`); the Keras `train()` history format
+  and callback arguments are replaced by a plain dict and an `on_epoch_end`
+  callback.
+* GLUE, TyDi, and penguin datasets now load from HuggingFace `datasets` (or
+  CSV) instead of TensorFlow Datasets.
+* The penguin demo model is now a scikit-learn classifier trained on the
+  dataset at init; the hosted `penguin.h5` asset is no longer used.
+* Prompt debugging now supports HuggingFace Transformers on PyTorch only; the
+  KerasNLP wrapper (`keras_lms.py`) and the `dl_framework` option have been
+  removed.
+* TyDi QA demo models now run with PyTorch instead of Flax.
+* Optional extras are now additive and disjoint; combine them when installing,
+  e.g. `pip install 'lit-nlp[examples-common,examples-discriminative-ai]'`.
+  The old self-contained extras are replaced by
+  `examples-common` + a task-specific extra.
+
+### Dependencies
+* Removed `tensorflow`, `tf-keras`, `keras-nlp`, `tensorflow-text`, and
+  `tensorflow-datasets`; added `torch`, `datasets`, and `huggingface-hub`.
+
+
 ## Release 1.3.1
 
 This is a minor update to fix issues with running the [LIT Gemma Colab](https://colab.sandbox.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb).

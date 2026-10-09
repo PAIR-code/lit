@@ -8,9 +8,8 @@ class PenguinModelIntTest(absltest.TestCase):
   """Test that model class can predict."""
 
   def test_model(self):
-    # Create model.
-    model_path = "https://storage.googleapis.com/what-if-tool-resources/lit-models/penguin.h5"  # pylint: disable=line-too-long
-    model = penguin_model.PenguinModel(model_path)
+    # Create model. The model trains on the penguin dataset at init.
+    model = penguin_model.PenguinModel()
 
     # Run prediction to ensure no failure.
     model_in = [{

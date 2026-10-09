@@ -13,11 +13,4 @@
 # limitations under the License.
 # ==============================================================================
 
--r ../../../requirements.txt
-
-flax>=0.5.3
-jax==0.4.6
-jaxlib==0.4.6
-tensorflow>=2.10.0,<2.16.0
-tensorflow-datasets>=4.9.0
-transformers>=4.27.1
+-r ../../../requirements_examples_discriminative_ai.txt

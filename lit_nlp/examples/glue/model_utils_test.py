@@ -74,7 +74,7 @@ class BatchEncodePretokenizedTest(absltest.TestCase):
     encoded = model_utils.batch_encode_pretokenized(self.tokenizer, tokens)
     expected_encoded = self.tokenizer.batch_encode_plus(
         sentences,
-        return_tensors='tf',
+        return_tensors='pt',
         add_special_tokens=True,
         padding='longest',
         truncation='longest_first')
@@ -94,7 +94,7 @@ class BatchEncodePretokenizedTest(absltest.TestCase):
                                                     *zip(*input_tokens))
     expected_encoded = self.tokenizer.batch_encode_plus(
         sentence_pairs,
-        return_tensors='tf',
+        return_tensors='pt',
         add_special_tokens=True,
         padding='longest',
         truncation='longest_first')
@@ -111,7 +111,7 @@ class BatchEncodePretokenizedTest(absltest.TestCase):
                                                     **kw)
     expected_encoded = self.tokenizer.batch_encode_plus(
         sentences,
-        return_tensors='tf',
+        return_tensors='pt',
         add_special_tokens=True,
         padding='longest',
         truncation='longest_first',

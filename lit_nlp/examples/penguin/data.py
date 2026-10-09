@@ -1,13 +1,20 @@
-"""🐧 Penguin tabular dataset from TFDS.
+"""🐧 Penguin tabular dataset from the palmerpenguins project.
 
-See https://www.tensorflow.org/datasets/catalog/penguins. for details.
+See https://allisonhorst.github.io/palmerpenguins/ for details.
 """
 
-from collections.abc import Mapping
-from typing import Optional, Union
+from typing import Optional
+
+import pandas as pd
+
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
-import tensorflow_datasets as tfds
+from lit_nlp.lib import file_cache
+
+PENGUINS_URL = (
+    'https://raw.githubusercontent.com/allisonhorst/palmerpenguins/main/'
+    'inst/extdata/penguins.csv'
+)
 
 VOCABS = {
     'island': ['Biscoe', 'Dream', 'Torgersen'],
@@ -28,30 +35,25 @@ INPUT_SPEC: lit_types.Spec = {
 class PenguinDataset(lit_dataset.Dataset):
   """Dataset of penguin tabular data.
 
-  From https://www.tensorflow.org/datasets/catalog/penguins.
+  From https://allisonhorst.github.io/palmerpenguins/.
   """
 
-  @classmethod
-  def lit_example_from_record(cls, rec: Mapping[str, Union[float, int]]):
-    return {
-        'body_mass_g': rec['body_mass_g'],
-        'culmen_depth_mm': rec['culmen_depth_mm'],
-        'culmen_length_mm': rec['culmen_length_mm'],
-        'flipper_length_mm': rec['flipper_length_mm'],
-        'island': VOCABS['island'][rec['island']],
-        'sex': VOCABS['sex'][rec['sex']],
-        'species': VOCABS['species'][rec['species']],
-    }
-
   def __init__(self, max_examples: Optional[int] = None):
-    peng = tfds.load('penguins/simple', download=True, try_gcs=True)
-    dataset_df = tfds.as_dataframe(peng['train'])
+    path = file_cache.cached_path(PENGUINS_URL)
+    dataset_df = pd.read_csv(path)
+    # Match the field names used by the LIT spec.
+    dataset_df = dataset_df.rename(columns={
+        'bill_length_mm': 'culmen_length_mm',
+        'bill_depth_mm': 'culmen_depth_mm',
+    })
+    dataset_df['sex'] = dataset_df['sex'].str.capitalize()
 
-    # Filter out invalid rows.
-    dataset_df = dataset_df.loc[dataset_df['sex'] != 2]
+    # Filter out rows with missing values.
+    fields = list(self.spec().keys())
+    dataset_df = dataset_df.dropna(subset=fields)
     records = dataset_df.to_dict(orient='records')
     self._examples = [
-        PenguinDataset.lit_example_from_record(rec) for rec in records
+        {field: rec[field] for field in fields} for rec in records
     ][:max_examples]
 
   @classmethod

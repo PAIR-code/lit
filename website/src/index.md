@@ -78,11 +78,11 @@ And more...
 " %}
 {% include partials/one-of-three-column title:"Framework agnostic", text: "
 
-TensorFlow 1.x
-
-TensorFlow 2.x
-
 PyTorch
+
+HuggingFace Transformers
+
+scikit-learn
 
 Notebook compatibility
 
@@ -104,7 +104,7 @@ And more...
   {% include partials/home-card image: '/assets/images/LIT_Updates.png',
       action: 'UPDATES',
       title: 'Version 1.2',
-      desc: 'Input salience for text-to-text LLMs, with wrappers for HuggingFace Transformers and KerasNLP models.',
+      desc: 'Input salience for text-to-text LLMs, with wrappers for HuggingFace Transformers models.',
       cta-text:"See release notes",
       link: 'https://github.com/PAIR-code/lit/blob/main/RELEASE.md'
       external:"true" %}

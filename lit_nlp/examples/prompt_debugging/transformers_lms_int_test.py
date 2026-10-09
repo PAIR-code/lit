@@ -6,31 +6,27 @@ from transformers import tokenization_utils
 
 _MAX_LENGTH = 32
 
+_GPT2_PT_PATH = (
+    "https://storage.googleapis.com/what-if-tool-resources/lit-models/"
+    "gpt2-pt.tar.gz"
+)
+
 
 def _tokenize_text(
-    text: str, tokenizer: tokenization_utils.PreTrainedTokenizer, framework: str
+    text: str, tokenizer: tokenization_utils.PreTrainedTokenizer
 ) -> tokenization_utils.BatchEncoding:
-  return_tensors_type = (
-      transformers_lms._HF_PYTORCH
-      if framework == transformers_lms.MLFramework.PT.value
-      else transformers_lms._HF_TENSORFLOW
-  )
   return tokenizer(
       text,
-      return_tensors=return_tensors_type,
+      return_tensors=transformers_lms._HF_PYTORCH,
       add_special_tokens=True,
   )
 
 
 def _get_text_mean_embeddings(
-    text: str, model: transformers_lms.HFBaseModel, framework: str
+    text: str, model: transformers_lms.HFBaseModel
 ) -> np.ndarray:
-  tokens = _tokenize_text(
-      text=text, tokenizer=model.tokenizer, framework=framework
-  )
-  embeddings = model.embedding_table(tokens["input_ids"])
-  if framework == transformers_lms.MLFramework.PT.value:
-    embeddings = embeddings.detach()
+  tokens = _tokenize_text(text=text, tokenizer=model.tokenizer)
+  embeddings = model.embedding_table(tokens["input_ids"]).detach()
   mean_embeddings = np.mean(embeddings.numpy()[0], axis=0)
   return mean_embeddings
 
@@ -38,22 +34,10 @@ def _get_text_mean_embeddings(
 class TransformersLMSGeneration(parameterized.TestCase):
   """Test that model classes can predict."""
 
-  @parameterized.named_parameters(
-      dict(
-          testcase_name="tensorflow_framework",
-          framework=transformers_lms.MLFramework.TF.value,
-          model_path="https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz",
-      ),
-      dict(
-          testcase_name="pytorch_framework",
-          framework=transformers_lms.MLFramework.PT.value,
-          model_path="https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2-pt.tar.gz",
-      ),
-  )
-  def test_gpt2_generation_output(self, framework, model_path):
+  def test_gpt2_generation_output(self):
     model = transformers_lms.HFGenerativeModel(
-        model_name_or_path=model_path,
-        framework=framework,
+        model_name_or_path=_GPT2_PT_PATH,
+        framework=transformers_lms.SUPPORTED_ML_RUNTIMES[0],
         max_length=_MAX_LENGTH,
     )
     model_in = [{"prompt": "Today is"}, {"prompt": "What is the color of"}]
@@ -74,10 +58,10 @@ class TransformersLMSGeneration(parameterized.TestCase):
     ):
       for cur_input, cur_output in zip(model_in, model_out):
         expected_input_embeddings = _get_text_mean_embeddings(
-            text=cur_input["prompt"], model=model, framework=framework
+            text=cur_input["prompt"], model=model
         )
         expected_output_embeddings = _get_text_mean_embeddings(
-            text=cur_output["response"], model=model, framework=framework
+            text=cur_output["response"], model=model
         )
         np.testing.assert_array_almost_equal(
             expected_input_embeddings,
@@ -88,24 +72,12 @@ class TransformersLMSGeneration(parameterized.TestCase):
             cur_output["response_embeddings"],
         )
 
-  @parameterized.named_parameters(
-      dict(
-          testcase_name="tensorflow_framework",
-          framework=transformers_lms.MLFramework.TF.value,
-          model_path="https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz",
-      ),
-      dict(
-          testcase_name="pytorch_framework",
-          framework=transformers_lms.MLFramework.PT.value,
-          model_path="https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2-pt.tar.gz",
-      ),
-  )
   def test_gpt2_batched_generation_has_correct_input_and_output_token_lengths(
-      self, framework, model_path
+      self,
   ):
     model = transformers_lms.HFGenerativeModel(
-        model_name_or_path=model_path,
-        framework=framework,
+        model_name_or_path=_GPT2_PT_PATH,
+        framework=transformers_lms.SUPPORTED_ML_RUNTIMES[0],
         max_length=_MAX_LENGTH,
     )
     model_in = [{"prompt": "Today is"}, {"prompt": "What is the color of"}]
@@ -114,7 +86,6 @@ class TransformersLMSGeneration(parameterized.TestCase):
         _tokenize_text(
             text=input_dict["prompt"],
             tokenizer=model.tokenizer,
-            framework=framework,
         )
         for input_dict in model_in
     ]

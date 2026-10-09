@@ -2,10 +2,10 @@ r"""A blank demo ready to load models and datasets.
 
 The currently supported models and datasets are:
 - classification model on SST-2, with the Stanford Sentiment Treebank dataset.
-- regression model on STS-B, with Semantic Textual Similarit Benchmark dataset.
+- regression model on STS-B, with Semantic Textual Similarity Benchmark dataset.
 - classification model on MultiNLI, with the MultiNLI dataset.
-- TensorFlow Keras model for penguin classification, with the Penguin tabular
-  dataset from TFDS.
+- Scikit-learn model for penguin classification, with the Palmer Penguins
+  tabular dataset.
 
 To run:
   python -m lit_nlp.examples.blank_slate_demo --port=5432

@@ -26,7 +26,7 @@ from lit_nlp.examples.prompt_debugging import utils as pd_utils
 from lit_nlp.lib import serialize
 from lit_nlp.lib import wsgi_app
 
-DEFAULT_MODELS = 'gemma_1.1_2b_IT:gemma_1.1_instruct_2b_en'
+DEFAULT_MODELS = 'gemma_2b_IT:google/gemma-2b-it'
 
 _LlmHTTPEndpoints = lit_gcp_constants.LlmHTTPEndpoints
 
@@ -52,7 +52,6 @@ def get_wsgi_app() -> wsgi_app.App:
         f'Only 1 model configuration can be provided, got {num_configs}'
     )
 
-  dl_framework = os.getenv('DL_FRAMEWORK', pd_models.DEFAULT_DL_FRAMEWORK)
   dl_runtime = os.getenv('DL_RUNTIME', pd_models.DEFAULT_DL_RUNTIME)
   precision = os.getenv('PRECISION', pd_models.DEFAULT_PRECISION)
   batch_size = int(os.getenv('BATCH_SIZE', pd_models.DEFAULT_BATCH_SIZE))
@@ -62,7 +61,6 @@ def get_wsgi_app() -> wsgi_app.App:
 
   models = pd_models.get_models(
       models_config=model_config,
-      dl_framework=dl_framework,
       dl_runtime=dl_runtime,
       precision=precision,
       batch_size=batch_size,

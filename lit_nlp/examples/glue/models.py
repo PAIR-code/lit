@@ -7,8 +7,9 @@ from collections.abc import Iterable, Sequence
 import os
 import re
 import threading
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
+from absl import logging
 import attr
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
@@ -16,17 +17,13 @@ from lit_nlp.examples.glue import model_utils
 from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
 import numpy as np
-import tensorflow as tf
-import tf_keras as keras
+import torch
 import transformers
-
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
-TFSequenceClassifierOutput = (
-    transformers.modeling_tf_outputs.TFSequenceClassifierOutput
-)
+_MF = transformers.modeling_outputs
+SequenceClassifierOutput = _MF.SequenceClassifierOutput
 
 
 @attr.s(auto_attribs=True, kw_only=True)
@@ -73,7 +70,7 @@ class GlueModelConfig(object):
 
 
 class GlueModel(lit_model.BatchedModel):
-  """GLUE benchmark model, using Keras/TF2 and Huggingface Transformers.
+  """GLUE benchmark model, using PyTorch and Huggingface Transformers.
 
   This is a general-purpose classification or regression model. It works for
   one- or two-segment input, and predicts either a multiclass label or
@@ -129,14 +126,13 @@ class GlueModel(lit_model.BatchedModel):
     model_config = transformers.AutoConfig.from_pretrained(
         model_name_or_path,
         num_labels=1 if self.is_regression else len(self.config.labels),
-        return_dict=False,  # default for training; overridden for predict
         output_attentions=self.config.output_attention,
     )
-    self.model = model_utils.load_pretrained(
-        transformers.TFAutoModelForSequenceClassification,
-        model_name_or_path,
-        config=model_config,
-    )
+    cls = transformers.AutoModelForSequenceClassification
+    self.model = cls.from_pretrained(model_name_or_path, config=model_config)
+    self.device = "cuda" if torch.cuda.is_available() else "cpu"
+    self.model.to(self.device)
+    self.model.eval()
 
   def _get_tokens(self, ex: JsonDict, field_name: str) -> list[str]:
     with self._lock:
@@ -144,7 +140,9 @@ class GlueModel(lit_model.BatchedModel):
           ex[field_name]
       )
 
-  def _preprocess(self, inputs: Iterable[JsonDict]) -> dict[str, tf.Tensor]:
+  def _preprocess(
+      self, inputs: Iterable[JsonDict]
+  ) -> transformers.BatchEncoding:
     # Use pretokenized input if available.
     tokens_a = [self._get_tokens(ex, self.config.text_a_name) for ex in inputs]
     tokens_b = None
@@ -160,27 +158,25 @@ class GlueModel(lit_model.BatchedModel):
         tokens_b,
         max_length=self.config.max_seq_length,
     )
-    return encoded_input  # pytype: disable=bad-return-type
+    encoded_input.to(self.device)
+    return encoded_input
 
-  def _make_dataset(self, inputs: Iterable[JsonDict]) -> tf.data.Dataset:
-    """Make a tf.data.Dataset from inputs in LIT format."""
-    encoded_input = self._preprocess(inputs)
+  def _make_label_tensor(self, inputs: Iterable[JsonDict]) -> torch.Tensor:
+    """Make a label tensor from inputs in LIT format."""
     if self.is_regression:
-      labels = tf.constant(
-          [ex[self.config.label_name] for ex in inputs], dtype=tf.float32
+      return torch.tensor(
+          [ex[self.config.label_name] for ex in inputs],
+          dtype=torch.float32,
+          device=self.device,
       )
     else:
       indexes = []
       if self.config.labels is not None:
         for ex in inputs:
           indexes.append(self.config.labels.index(ex[self.config.label_name]))
-      labels = tf.constant(
-          indexes,
-          dtype=tf.int64,
+      return torch.tensor(
+          indexes, dtype=torch.long, device=self.device
       )
-    # encoded_input is actually a transformers.BatchEncoding
-    # object, which tf.data.Dataset doesn't like. Convert to a regular dict.
-    return tf.data.Dataset.from_tensor_slices((dict(encoded_input), labels))
 
   def train(
       self,
@@ -189,44 +185,123 @@ class GlueModel(lit_model.BatchedModel):
       learning_rate=2e-5,
       batch_size=32,
       num_epochs=3,
-      keras_callbacks=None,
+      on_epoch_end: Optional[Callable[[int, dict[str, float]], None]] = None,
   ):
-    """Run fine-tuning."""
-    train_dataset = (
-        self._make_dataset(train_inputs)
-        .shuffle(128)
-        .batch(batch_size)
-        .repeat(-1)
+    """Run fine-tuning.
+
+    Args:
+      train_inputs: list of training examples in LIT format.
+      validation_inputs: list of validation examples in LIT format.
+      learning_rate: learning rate for the Adam optimizer.
+      batch_size: training batch size.
+      num_epochs: number of epochs to train for.
+      on_epoch_end: optional callback, called after each epoch with
+        (epoch_index, logs) where logs contains epoch metrics.
+
+    Returns:
+      Dict summarizing training history, with keys "epochs", "history",
+      "params", and "optimizer_params".
+    """
+    self.model.train()
+    optimizer = torch.optim.Adam(
+        self.model.parameters(), lr=learning_rate, eps=1e-08
     )
+    if self.is_regression:
+      loss_fn = torch.nn.MSELoss()
+    else:
+      loss_fn = torch.nn.CrossEntropyLoss()
+
     # Use larger batch for validation since inference is about 1/2 memory usage
     # of backprop.
     eval_batch_size = 2 * batch_size
-    validation_dataset = self._make_dataset(validation_inputs).batch(
-        eval_batch_size
-    )
-
-    # Prepare model for training.
-    opt = keras.optimizers.Adam(learning_rate=learning_rate, epsilon=1e-08)
-    if self.is_regression:
-      loss = keras.losses.MeanSquaredError()
-      metric = keras.metrics.RootMeanSquaredError("rmse")
-    else:
-      loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-      metric = keras.metrics.SparseCategoricalAccuracy("accuracy")
-    self.model.compile(optimizer=opt, loss=loss, metrics=[metric])
-
     steps_per_epoch = len(train_inputs) // batch_size
-    validation_steps = len(validation_inputs) // eval_batch_size
-    history = self.model.fit(
-        train_dataset,
-        epochs=num_epochs,
-        steps_per_epoch=steps_per_epoch,
-        validation_data=validation_dataset,
-        validation_steps=validation_steps,
-        callbacks=keras_callbacks,
-        verbose=2,
-    )
-    return history
+    history: dict[str, list[float]] = {
+        "loss": [],
+        "val_loss": [],
+        ("val_rmse" if self.is_regression else "val_accuracy"): [],
+    }
+    for epoch in range(num_epochs):
+      self.model.train()
+      perm = torch.randperm(len(train_inputs))
+      train_inputs = [train_inputs[i] for i in perm.tolist()]
+      epoch_losses = []
+      for step in range(steps_per_epoch):
+        batch = train_inputs[step * batch_size : (step + 1) * batch_size]
+        encoded_input = self._preprocess(batch)
+        labels = self._make_label_tensor(batch)
+        optimizer.zero_grad()
+        out: SequenceClassifierOutput = self.model(
+            **encoded_input, labels=labels
+        )
+        loss = out.loss
+        loss.backward()
+        optimizer.step()
+        epoch_losses.append(loss.item())
+
+      val_loss, val_metric = self._evaluate(
+          validation_inputs, eval_batch_size, loss_fn
+      )
+      history["loss"].append(float(np.mean(epoch_losses)))
+      history["val_loss"].append(val_loss)
+      history[
+          ("val_rmse" if self.is_regression else "val_accuracy")
+      ].append(val_metric)
+      logs = {k: v[-1] for k, v in history.items()}
+      logging.info(
+          "Epoch %d: %s",
+          epoch,
+          ", ".join(f"{k}={v:.4f}" for k, v in logs.items()),
+      )
+      if on_epoch_end is not None:
+        on_epoch_end(epoch, logs)
+
+    self.model.eval()
+    return {
+        "epochs": list(range(num_epochs)),
+        "history": history,
+        "params": {
+            "epochs": num_epochs,
+            "batch_size": batch_size,
+            "steps_per_epoch": steps_per_epoch,
+        },
+        "optimizer_params": {
+            "learning_rate": learning_rate,
+            "epsilon": 1e-08,
+        },
+    }
+
+  def _evaluate(
+      self,
+      eval_inputs: list[JsonDict],
+      batch_size: int,
+      loss_fn: torch.nn.Module,
+  ) -> tuple[float, float]:
+    """Run a validation pass, returning (loss, rmse_or_accuracy)."""
+    self.model.eval()
+    losses, sq_errors, correct, total = [], 0.0, 0, 0
+    with torch.no_grad():
+      for start in range(0, len(eval_inputs), batch_size):
+        batch = eval_inputs[start : start + batch_size]
+        encoded_input = self._preprocess(batch)
+        labels = self._make_label_tensor(batch)
+        out: SequenceClassifierOutput = self.model(
+            **encoded_input, labels=labels
+        )
+        losses.append(out.loss.item())
+        if self.is_regression:
+          sq_errors += float(((out.logits[:, 0] - labels) ** 2).sum())
+          total += len(batch)
+        else:
+          correct += int(
+              (out.logits.argmax(dim=-1) == labels).sum()
+          )
+          total += len(batch)
+    val_loss = float(np.mean(losses)) if losses else float("nan")
+    if self.is_regression:
+      val_metric = float(np.sqrt(sq_errors / max(total, 1)))
+    else:
+      val_metric = correct / max(total, 1)
+    return val_loss, val_metric
 
   def save(self, path: str):
     """Save model weights and tokenizer info.
@@ -331,9 +406,9 @@ class GlueModel(lit_model.BatchedModel):
     """Scatters custom passed embeddings into the default model embeddings.
 
     Args:
-      passed_input_embs: <tf.float32>[num_scatter_tokens], the custom passed
+      passed_input_embs: <float32>[num_scatter_tokens], the custom passed
         embeddings to be scattered into the default model embeddings.
-      input_embs: the default model embeddings.
+      input_embs: the default model embeddings, as a torch.Tensor or ndarray.
       batch_indices: the indices of the embeddings to replace in the format
         (batch_index, sequence_index).
       offsets: the offset from which to scatter the custom embedding (number of
@@ -362,8 +437,17 @@ class GlueModel(lit_model.BatchedModel):
         scatter_indices.append([batch_index, token_index + offset])
 
     # Scatters passed word embeddings into embeddings gathered from tokens.
-    # <tf.float32>[batch_size, num_tokens + num_special_tokens, emb_size]
-    return tf.tensor_scatter_nd_update(input_embs, scatter_indices, updates)
+    # <float32>[batch_size, num_tokens + num_special_tokens, emb_size]
+    if not isinstance(input_embs, torch.Tensor):
+      input_embs = torch.from_numpy(np.asarray(input_embs))
+    indices = torch.tensor(scatter_indices, dtype=torch.long).t()
+    updates_tensor = (
+        torch.from_numpy(np.asarray(updates))
+        .to(device=input_embs.device, dtype=input_embs.dtype)
+    )
+    return input_embs.index_put(
+        (indices[0], indices[1]), updates_tensor
+    )
 
   def scatter_all_embeddings(self, inputs, input_embs):
     """Scatters custom passed embeddings for text segment inputs.
@@ -429,12 +513,12 @@ class GlueModel(lit_model.BatchedModel):
 
     Args:
       inputs: list of input examples
-      scores: <tf.float32>[batch_size, num_classes], either logits or probas
+      scores: <float32>[batch_size, num_classes], either logits or probas
 
     Returns:
-      <tf.float32>[batch_size] target scores for each input
+      <float32>[batch_size] target scores for each input
     """
-    arg_max = tf.math.argmax(scores, axis=-1).numpy()
+    arg_max = scores.argmax(dim=-1).cpu().numpy()
     grad_classes = [
         ex.get(self.config.label_name, arg_max[i])
         for (i, ex) in enumerate(inputs)
@@ -446,10 +530,12 @@ class GlueModel(lit_model.BatchedModel):
         grad_idxs.append(self.config.labels.index(label))
       else:
         grad_idxs.append(label)
-    # list of tuples (batch idx, label idx)
-    gather_indices = list(enumerate(grad_idxs))
-    # <tf.float32>[batch_size]
-    return tf.gather_nd(scores, gather_indices), grad_idxs
+    # <float32>[batch_size]
+    batch_idx = torch.arange(len(inputs), device=scores.device)
+    idx_tensor = torch.tensor(
+        grad_idxs, dtype=torch.long, device=scores.device
+    )
+    return scores[batch_idx, idx_tensor], grad_idxs
 
   ##
   # LIT API implementation
@@ -457,48 +543,44 @@ class GlueModel(lit_model.BatchedModel):
     return self.config.inference_batch_size
 
   def get_embedding_table(self):
-    # TODO(b/236276775): Unify on the TFBertEmbeddings.weight API after
-    # transformers is updated to v4.25.1 (or newer).
-    if hasattr(self.model.bert.embeddings, "word_embeddings"):
-      return self.vocab, self.model.bert.embeddings.word_embeddings.numpy()
-    else:
-      return self.vocab, self.model.bert.embeddings.weight.numpy()
+    return (
+        self.vocab,
+        self.model.get_input_embeddings().weight.detach().cpu().numpy(),
+    )
 
   def predict_minibatch(self, inputs: Iterable[JsonDict]):
-    # Use watch_accessed_variables to save memory by having the tape do nothing
-    # if we don't need gradients.
-    with tf.GradientTape(
-        watch_accessed_variables=self.config.compute_grads
-    ) as tape:
-      encoded_input = self._preprocess(inputs)
+    encoded_input = self._preprocess(inputs)
 
-      # Gathers word embeddings from BERT model embedding layer using input ids
+    grad_context = (
+        torch.enable_grad()
+        if self.config.compute_grads
+        else torch.no_grad()
+    )
+    with grad_context:
+      # Gathers word embeddings from the model embedding layer using input ids
       # of the tokens.
       input_ids = encoded_input["input_ids"]
-      word_embeddings = self.model.bert.embeddings.weight
-      # <tf.float32>[batch_size, num_tokens, emb_size]
-      input_embs = tf.gather(word_embeddings, input_ids)
+      word_embeddings = self.model.get_input_embeddings().weight
+      # <float32>[batch_size, num_tokens, emb_size]
+      input_embs = torch.nn.functional.embedding(input_ids, word_embeddings)
 
       # Scatter in any passed in embeddings.
-      # <tf.float32>[batch_size, num_tokens, emb_size]
+      # <float32>[batch_size, num_tokens, emb_size]
       input_embs = self.scatter_all_embeddings(inputs, input_embs)
 
-      tape.watch(input_embs)  # Watch input_embs for gradient calculation.
-
-      model_inputs = encoded_input.copy()
-      model_inputs["input_ids"] = None
-      out: TFSequenceClassifierOutput = self.model(
-          model_inputs,
+      model_inputs = {
+          k: v for k, v in encoded_input.items() if k != "input_ids"
+      }
+      out: SequenceClassifierOutput = self.model(
+          **model_inputs,
           inputs_embeds=input_embs,
-          training=False,
           output_hidden_states=True,
           output_attentions=True,
-          return_dict=True,
       )
 
       batched_outputs = {
           "input_ids": encoded_input["input_ids"],
-          "ntok": tf.reduce_sum(encoded_input["attention_mask"], axis=1),
+          "ntok": encoded_input["attention_mask"].sum(dim=1),
           "cls_emb": out.hidden_states[-1][:, 0],  # last layer, first token
       }
 
@@ -508,17 +590,17 @@ class GlueModel(lit_model.BatchedModel):
         self._verify_num_layers(out.hidden_states)
 
         # <float32>[batch_size, num_tokens, 1]
-        token_mask = tf.expand_dims(
-            tf.cast(encoded_input["attention_mask"], tf.float32), axis=2
+        token_mask = torch.unsqueeze(
+            encoded_input["attention_mask"].to(torch.float32), dim=2
         )
         # <float32>[batch_size, 1]
-        denom = tf.reduce_sum(token_mask, axis=1)
+        denom = token_mask.sum(dim=1)
         for i, layer_output in enumerate(out.hidden_states):
           # layer_output is <float32>[batch_size, num_tokens, emb_dim]
           # average over tokens to get <float32>[batch_size, emb_dim]
           batched_outputs[f"layer_{i}/avg_emb"] = (
-              tf.reduce_sum(layer_output * token_mask, axis=1) / denom
-          )
+              layer_output * token_mask
+          ).sum(dim=1) / denom
 
       if self.config.output_attention:
         if len(out.attentions) != self.model.config.num_hidden_layers:
@@ -529,37 +611,38 @@ class GlueModel(lit_model.BatchedModel):
               f"{len(out.attentions)}."
           )
         for i, layer_attention in enumerate(out.attentions):
+          # <float32>[batch_size, num_heads, num_tokens, num_tokens]
           batched_outputs[f"layer_{i+1}/attention"] = layer_attention
 
       if self.is_regression:
-        # <tf.float32>[batch_size]
-        batched_outputs["score"] = tf.squeeze(out.logits, axis=-1)
-        # <tf.float32>[batch_size], a single target per example
+        # <float32>[batch_size]
+        batched_outputs["score"] = torch.squeeze(out.logits, dim=-1)
+        # <float32>[batch_size], a single target per example
         scalar_targets = batched_outputs["score"]
       else:
-        # <tf.float32>[batch_size, num_labels]
-        batched_outputs["probas"] = tf.nn.softmax(out.logits, axis=-1)
-        # <tf.float32>[batch_size], a single target per example
+        # <float32>[batch_size, num_labels]
+        batched_outputs["probas"] = torch.softmax(out.logits, dim=-1)
+        # <float32>[batch_size], a single target per example
         scalar_targets, grad_idxs = self.get_target_scores(
             inputs, batched_outputs["probas"]
         )
         # TODO(b/294613507): remove once TCAV updated.
         if self.config.compute_grads:
-          batched_outputs[self.config.label_name] = tf.convert_to_tensor(
-              grad_idxs
+          batched_outputs[self.config.label_name] = torch.tensor(
+              grad_idxs, device=self.device
           )
 
-    # Request gradients after the tape is run.
+    # Request gradients after the forward pass is run.
     # Note: embs[0] includes position and segment encodings, as well as subword
     # embeddings.
     if self.config.compute_grads:
-      # <tf.float32>[batch_size, num_tokens, emb_dim]
-      batched_outputs["input_emb_grad"] = tape.gradient(
-          scalar_targets, input_embs
-      )
+      # <float32>[batch_size, num_tokens, emb_dim]
+      batched_outputs["input_emb_grad"] = torch.autograd.grad(
+          scalar_targets.sum(), input_embs
+      )[0]
 
     detached_outputs = {
-        k: v.numpy()
+        k: v.detach().cpu().numpy()
         for k, v in batched_outputs.items()
         if v is not None
     }

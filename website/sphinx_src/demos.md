@@ -29,7 +29,7 @@ https://pair-code.github.io/lit/demos/.
     *   STS-B textual similarity task (see
         [Regression / Scoring](#regression-scoring) below).
     *   Switch tasks using the Settings (⚙️) menu.
-*   BERT models of different sizes, built on HuggingFace TF2 (Keras).
+*   BERT models of different sizes, built on HuggingFace Transformers (PyTorch).
 *   Supports the widest range of LIT interpretability features:
     *   Model output probabilities, custom thresholds, and multiclass metrics.
     *   Jitter plot of output scores, to find confident examples or ones near
@@ -53,7 +53,7 @@ https://pair-code.github.io/lit/tutorials/sentiment
 
 *   STS-B textual similarity task, predicting scores on a range from 0
     (unrelated) to 5 (very similar).
-*   BERT models built on HuggingFace TF2 (Keras).
+*   BERT models built on HuggingFace Transformers (PyTorch).
 *   Supports a wide range of LIT interpretability features:
     *   Model output scores and metrics.
     *   Scatter plot of scores and error, and jitter plot of true labels for
@@ -70,8 +70,8 @@ https://pair-code.github.io/lit/tutorials/sentiment
 **Code:**
 [examples/prompt_debugging/server.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/server.py)
 
-*   Supports Gemma 2B and 7B models using KerasNLP (with TensorFlow or PyTorch)
-    and Transformers (with PyTorch).
+*   Supports Gemma, Llama, Mistral, and other LLMs using HuggingFace
+    Transformers (with PyTorch).
 *   Interactively debug LLM prompts using
     [sequence salience](./components.md#sequence-salience).
 *   Multiple salience methods (grad-l2 and grad-dot-input), at multiple
@@ -91,7 +91,7 @@ Generative AI Toolkit.
 **Code:** [examples/penguin/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/demo.py)
 
 *   Binary classification on
-    [penguin dataset](https://www.tensorflow.org/datasets/catalog/penguins).
+    [penguin dataset](https://allisonhorst.github.io/palmerpenguins/).
 *   Showing using of LIT on non-text data (numeric and categorical features).
 *   Use partial-dependence plots to understand feature importance on individual
     examples, selections, or the entire evaluation dataset.

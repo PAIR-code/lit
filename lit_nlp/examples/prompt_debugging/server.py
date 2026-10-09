@@ -1,14 +1,14 @@
 r"""Server for sequence salience with a left-to-right language model.
 
 To use with the Gemma, Llama, or Mistral models, install the latest versions of
-Keras, KerasNLP, and/or HuggingFace Transformers:
+HuggingFace Transformers:
 
-  pip install keras>=3.1.0 keras-nlp>=0.9.0 transformers>=4.38.0
+  pip install transformers>=4.38.0
 
-To run with the default configuration (Gemma on TensorFlow via Keras):
+To run with the default configuration (Gemma on PyTorch):
 
   python3 -m lit_nlp.examples.prompt_debugging.server -- \
-    --models=gemma:gemma_1.1_instruct_2b_en \
+    --models=gemma:google/gemma-2b-it \
     --alsologtostderr
 
 MODELS:
@@ -19,19 +19,15 @@ to parameterize the --models flag with comma-separated `{model}:{preset}`
 strings, and remember the number of models loaded will be limited by the memory
 available on your accelerator.
 
-| Model   | dl_framework | dl_backend=tensorflow Preset | dl_backend=torch Preset              |
-| ------- | ------------ | ---------------------------- | ------------------------------------ |
-| Gemma   | kerasnlp     | gemma_1.1_instruct_7b_en     | gemma_1.1_instruct_7b_en             |
-| Gemma   | transformers | Unavailable                  | google/gemma-1.1-7b-it               |
-| Llama 2 | kerasnlp     | llama2_instruct_7b_en        | llama2_instruct_7b_en                |
-| Llama 2 | transformers | Unavailable                  | meta-llama/Llama-2-7b-hf             |
-| Mistral | kerasnlp     | mistral_instruct_7b_en       | mistral_instruct_7b_en               |
-| Mistral | transformers | Unavailable                  | mistralai/Mistral-7B-Instruct-v0.2   |
+| Model   | Preset                             |
+| ------- | ---------------------------------- |
+| Gemma   | google/gemma-1.1-7b-it             |
+| Llama 2 | meta-llama/Llama-2-7b-hf           |
+| Mistral | mistralai/Mistral-7B-Instruct-v0.2 |
 
-Additional model presets can be found at the following locations, though
+Additional model presets can be found at the following location, though
 compatibility with the LIT model wrappers is not guaranteed:
 
-* KerasNLP: https://keras.io/api/keras_nlp/models/
 * HuggingFace Transformers: https://huggingface.co/models
 
 DATASETS:
@@ -79,37 +75,14 @@ _BATCH_SIZE = flags.DEFINE_integer(
     "The number of examples to process per batch.",
 )
 
-_SUPPORTED_FRAMEWORKS = ("kerasnlp", "transformers")
-_DL_FRAMEWORK = flags.DEFINE_enum(
-    "dl_framework",
-    models.DEFAULT_DL_FRAMEWORK,
-    _SUPPORTED_FRAMEWORKS,
-    "The deep learning framework that loads and runs the model on the backend."
-    " This server will attempt to load all models specified by the --models"
-    " flag with the configured framework, incompatibilities will result in"
-    " errors.",
-)
-
-_DL_RUNTIME = flags.DEFINE_enum(
-    "dl_runtime",
-    models.DEFAULT_DL_RUNTIME,
-    # TODO(b/333373960): Add "jax" once JAX salience is supported.
-    ("tensorflow", "torch"),
-    "The deep learning backend framework that the model runs on. All models"
-    " loaded by this server will use the same backend, incompatibilities will"
-    " result in errors.",
-)
-
 _MODELS = flags.DEFINE_list(
     "models",
     models.DEFAULT_MODELS,
     "Models to load, as <name>:<path>. Path can be a URL, a local file path, or"
-    " the name of a preset for the configured Deep Learning framework (either"
-    " KerasNLP or HuggingFace Transformers; see --dl_framework for more). This"
-    " demo is tested with Gemma, GPT2, Llama, and Mistral on all supported"
-    " --dl_framework values. Other models should work, but adjustments might be"
-    " needed on their tokenizers (e.g., to define custom pad_token"
-    " when eos_token is not available to use as pad_token).",
+    " the name of a HuggingFace Transformers model. This demo is tested with"
+    " Gemma, GPT2, Llama, and Mistral. Other models should work, but"
+    " adjustments might be needed on their tokenizers (e.g., to define custom"
+    " pad_token when eos_token is not available to use as pad_token).",
 )
 
 _PRECISION = flags.DEFINE_enum(
@@ -161,8 +134,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   lit_demo = dev_server.Server(
       models=models.get_models(
           models_config=_MODELS.value,
-          dl_framework=_DL_FRAMEWORK.value,
-          dl_runtime=_DL_RUNTIME.value,
           precision=_PRECISION.value,
           batch_size=_BATCH_SIZE.value,
           max_length=_SEQUENCE_LENGTH.value,
@@ -172,8 +143,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       ),
       layouts=layouts.PROMPT_DEBUGGING_LAYOUTS,
       model_loaders=models.get_model_loaders(
-          dl_framework=_DL_FRAMEWORK.value,
-          dl_runtime=_DL_RUNTIME.value,
           batch_size=_BATCH_SIZE.value,
           max_length=_SEQUENCE_LENGTH.value,
       ),

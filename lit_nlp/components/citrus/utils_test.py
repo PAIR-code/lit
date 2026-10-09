@@ -17,10 +17,9 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.components.citrus import utils
 import numpy as np
-import tensorflow.compat.v2 as tf
 
 
-class UtilsTest(parameterized.TestCase, tf.test.TestCase):
+class UtilsTest(parameterized.TestCase):
 
   def setUp(self):
     """Resets random seed for each test."""
@@ -54,7 +53,7 @@ class UtilsTest(parameterized.TestCase, tf.test.TestCase):
     """Check if the scores sum to 1 after taking their absolute values."""
     original_min = np.min(scores)
     scores = utils.normalize_scores(scores, make_positive=make_positive)
-    self.assertAllClose(1.0, np.abs(scores).sum(-1))
+    np.testing.assert_allclose(1.0, np.abs(scores).sum(-1))
     if not make_positive:  # Keep the sign of originally negative values.
       self.assertLessEqual(np.min(scores), np.max([0.0, original_min]))
 

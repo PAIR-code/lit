@@ -14,8 +14,6 @@ def make_notebook_widget(
     *,
     # keep-sorted start
     batch_size: int = models.DEFAULT_BATCH_SIZE,
-    dl_framework: str = "kerasnlp",
-    dl_runtime: str = "tensorflow",
     max_examples: int = datasets.DEFAULT_MAX_EXAMPLES,
     precision: str = "bfloat16",
     # keep-sorted end,
@@ -31,11 +29,6 @@ def make_notebook_widget(
       "model:path", where path can be a URL, a local file path, or the name of a
       preset for the configured deep learning framework.
     batch_size: The number of examples the model will process per batch.
-    dl_framework: The deep learning framework that loads and runs the model on
-      the runtime, `models_config.path` incompatibilities will result in errors.
-    dl_runtime: The deep learning runtime that the model runs on, either
-      "tensorflow" or "torch". All loaded models will use the same runtime,
-      incompatibilities will result in errors.
     max_examples: Maximum number of examples in each loaded dataset.
     precision: Floating point precision for the models, either `bfloat16` or
       `float32`.
@@ -49,8 +42,6 @@ def make_notebook_widget(
   return lit_notebook.LitWidget(
       models=models.get_models(
           models_config=models_config,
-          dl_framework=dl_framework,
-          dl_runtime=dl_runtime,
           precision=precision,
           batch_size=batch_size,
       ),
@@ -60,8 +51,6 @@ def make_notebook_widget(
       layouts=layouts.PROMPT_DEBUGGING_LAYOUTS,
       default_layout=layouts.LEFT_RIGHT,
       model_loaders=models.get_model_loaders(
-          dl_framework=dl_framework,
-          dl_runtime=dl_runtime,
           batch_size=batch_size,
           max_length=models.DEFAULT_SEQUENCE_LENGTH,
       ),

@@ -3,7 +3,7 @@ TyDi QA Demo for the Learning Interpretability Tool
 
 This demo showcases how LIT can be used to a multilingual question-answering
 model trained on the [TyDi QA dataset](https://doi.org/10.1162/tacl_a_00317)
-using FLAX.
+using PyTorch.
 
 You will need a stand-alone virtual environment for the Python libraries, which you can set up using the following commands from the root of the LIT repo.
 

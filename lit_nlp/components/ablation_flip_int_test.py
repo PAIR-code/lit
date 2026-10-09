@@ -15,6 +15,7 @@
 """Tests for lit_nlp.components.ablation_flip."""
 
 from collections.abc import Iterable, Iterator
+import os
 
 from absl.testing import absltest
 from lit_nlp.api import types
@@ -23,15 +24,11 @@ from lit_nlp.examples.glue import models as glue_models
 import numpy as np
 
 
-from lit_nlp.lib import file_cache
-BERT_TINY_PATH = file_cache.cached_path(
-    'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz',  # pylint: disable=line-too-long
-    extract_compressed_file=True,
+_TESTDATA_PATH = os.path.join(
+    os.path.dirname(glue_models.__file__), 'testdata'
 )
-STSB_PATH = file_cache.cached_path(
-    'https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_tiny.tar.gz',  # pylint: disable=line-too-long
-    extract_compressed_file=True,
-)
+BERT_TINY_PATH = os.path.join(_TESTDATA_PATH, 'sst2_tiny')
+STSB_PATH = os.path.join(_TESTDATA_PATH, 'stsb_tiny')
 
 
 class SST2ModelNonRequiredField(glue_models.SST2Model):
@@ -73,7 +70,7 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
 
     # Classification model with a counter to count number of predict calls.
     # TODO(ataly): Consider setting up a Mock object to count number of
-    # predict calls.
+    #  predict calls.
     self.classification_model_with_predict_counter = (
         SST2ModelWithPredictCounter(BERT_TINY_PATH))
 

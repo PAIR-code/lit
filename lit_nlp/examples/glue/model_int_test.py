@@ -8,11 +8,13 @@ blaze test //third_party/py/lit_nlp/examples/glue:integration_tests \
     --guitar_detach
 """
 
+import os
 from typing import Any
 from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.examples.glue import models as glue_models
-from lit_nlp.lib import file_cache
+
+TESTDATA_PATH = os.path.join(os.path.dirname(__file__), "testdata")
 
 
 # TODO(b/254110131): Fix test flakiness. Expand to SST-2, STS-B, and MNLI
@@ -21,11 +23,7 @@ class GlueModelsIntTest(parameterized.TestCase):
   def __init__(self, *args: Any, **kwargs: Any):
     super().__init__(*args, **kwargs)
     # Create the SST-2 Model
-    model_path = "https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz"  # pylint: disable=line-too-long
-    if model_path.endswith(".tar.gz"):
-      model_path = file_cache.cached_path(
-          model_path, extract_compressed_file=True
-      )
+    model_path = os.path.join(TESTDATA_PATH, "sst2_tiny")
     self.sst2_model = glue_models.SST2Model(model_path)
 
   @parameterized.named_parameters(

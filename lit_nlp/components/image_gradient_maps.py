@@ -71,6 +71,38 @@ IG_STEPS = 10
 _SUPPORTED_PRED_TYPES = (types.MulticlassPreds, types.RegressionScore)
 
 
+def _patch_saliency_numpy_compat() -> None:
+  """Makes saliency 0.2.1 work with NumPy >= 2.0.
+
+  saliency.core.guided_ig calls np.quantile(..., interpolation='lower'), but
+  the `interpolation` keyword was removed in NumPy 2.0 in favor of `method`.
+  Swap the numpy reference used by that module for a proxy whose quantile
+  accepts the legacy keyword. Can be removed once a saliency release includes
+  the upstream fix.
+  """
+  import types as stdlib_types
+
+  from saliency.core import guided_ig
+
+  if getattr(guided_ig, '_lit_numpy_compat', False):
+    return
+  original_quantile = np.quantile
+
+  def _quantile(a, *args, **kwargs):
+    if 'interpolation' in kwargs:
+      kwargs['method'] = kwargs.pop('interpolation')
+    return original_quantile(a, *args, **kwargs)
+
+  numpy_compat = stdlib_types.ModuleType('numpy')
+  numpy_compat.__dict__.update(np.__dict__)
+  numpy_compat.quantile = _quantile
+  guided_ig.np = numpy_compat
+  guided_ig._lit_numpy_compat = True
+
+
+_patch_saliency_numpy_compat()
+
+
 class SupportedFields(NamedTuple):
   """The collection of field names that are required to calculate saliency."""
   grad_field_key: str

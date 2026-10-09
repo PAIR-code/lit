@@ -20,7 +20,7 @@ images and tabular data. For examples, see:
 *   [Tabular demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/demo.py) -
     multi-class classification on tabular (numeric and categorical string) data,
     using the
-    [Palmer Penguins](https://www.tensorflow.org/datasets/catalog/penguins)
+    [Palmer Penguins](https://allisonhorst.github.io/palmerpenguins/)
     dataset.
 
 For more details, see
@@ -168,7 +168,7 @@ LIT is primarily an evaluation/inference-time tool, so we don't provide any
 official training APIs. However, to facilitate code reuse you can easily add
 training methods to your model class. In fact, several of our demos do exactly
 this, using LIT's `Dataset` objects to manage training data along with standard
-training APIs (such as Keras' `model.fit()`). See
+training APIs (such as PyTorch optimizers and loops). See
 [`glue/models.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/models.py)
 for examples.
 

@@ -4,16 +4,16 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.tydi import data as tydi_data
 import numpy as np
+import torch
 import transformers
 
-
-_BertTokenizer = transformers.BertTokenizer
-_FlaxBertForQuestionAnswering = transformers.FlaxBertForQuestionAnswering
+_AutoTokenizer = transformers.AutoTokenizer
+_AutoModelForQuestionAnswering = transformers.AutoModelForQuestionAnswering
 _JsonDict = lit_types.JsonDict
 
 
 class TyDiModel(lit_model.Model):
-  """Question Answering Jax model based on TyDiQA Dataset."""
+  """Question Answering PyTorch model based on TyDiQA Dataset."""
 
   def __init__(
       self,
@@ -23,10 +23,13 @@ class TyDiModel(lit_model.Model):
       **unused_kw,
   ):
     super().__init__()
-    self.tokenizer = tokenizer or _BertTokenizer.from_pretrained(model_name)
-    self.model = model or _FlaxBertForQuestionAnswering.from_pretrained(
+    self.tokenizer = tokenizer or _AutoTokenizer.from_pretrained(model_name)
+    self.model = model or _AutoModelForQuestionAnswering.from_pretrained(
         model_name
     )
+    self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    self.model.to(self.device)
+    self.model.eval()
 
   def _segment_slicers(self, tokens: list[str]):
     """Slicers along the tokens dimension for each segment.
@@ -38,7 +41,7 @@ class TyDiModel(lit_model.Model):
       tokens: <string>[num_tokens], including special tokens
 
     Returns:
-      (slicer_a, slicer_b), slice objects
+      (slicer_question, slicer_context), slice objects
     """
     try:
       split_point = tokens.index(self.tokenizer.sep_token)
@@ -59,19 +62,20 @@ class TyDiModel(lit_model.Model):
 
     for inp in inputs:
       tokenized_text = self.tokenizer(
-          inp["question"], inp["context"], return_tensors="jax", padding=True
-      )
-      results = self.model(
-          **tokenized_text, output_hidden_states=True
-      )
-      answer_start_index = results.start_logits.argmax()
-      answer_end_index = results.end_logits.argmax()
+          inp["question"], inp["context"], return_tensors="pt", padding=True
+      ).to(self.device)
+      with torch.no_grad():
+        results = self.model(
+            **tokenized_text, output_hidden_states=True
+        )
+      answer_start_index = results.start_logits.argmax().item()
+      answer_end_index = results.end_logits.argmax().item()
       predict_answer_tokens = tokenized_text.input_ids[
           0, answer_start_index : answer_end_index + 1
       ]
 
       # get id's for question & context
-      tokens = np.asarray(tokenized_text["input_ids"])
+      tokens = np.asarray(tokenized_text["input_ids"].cpu())
       # convert id's to tokens
       total_tokens = self.tokenizer.convert_ids_to_tokens(tokens[0])
       # split by question & context

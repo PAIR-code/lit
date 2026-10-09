@@ -20,12 +20,8 @@ from lit_nlp.components import minimal_targeted_counterfactuals
 from lit_nlp.examples.penguin import data as penguin_data
 from lit_nlp.examples.penguin import model as penguin_model
 
-MODEL_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/penguin.h5'  # pylint: disable=line-too-long
-
 FLAGS = flags.FLAGS
 FLAGS.set_default('default_layout', 'penguins')
-_MODEL_PATH = flags.DEFINE_string('model_path', MODEL_PATH,
-                                  'Path to load trained model.')
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
     'max_examples',
@@ -69,7 +65,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  models = {'species classifier': penguin_model.PenguinModel(_MODEL_PATH.value)}
+  models = {'species classifier': penguin_model.PenguinModel()}
   datasets = {'penguins': penguin_data.PenguinDataset()}
   # Truncate datasets if --max_examples is set.
   if _MAX_EXAMPLES.value is not None:

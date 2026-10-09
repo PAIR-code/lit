@@ -32,7 +32,7 @@ Features include:
 *   **Highly extensible** to new model types, including classification,
     regression, span labeling, seq2seq, and language modeling. Supports
     multi-head models and multiple input features out of the box.
-*   **Framework-agnostic** and compatible with TensorFlow, PyTorch, and more.
+*   **Framework-agnostic** and compatible with PyTorch, scikit-learn, and more.
 
 LIT has a [website](https://pair-code.github.io/lit) with live demos, tutorials,
 a setup guide and more.
@@ -67,13 +67,13 @@ appropriate optional dependencies.
 
 ```sh
 # To install dependencies for the discriminative AI examples (GLUE, Penguin)
-pip install 'lit-nlp[examples-discriminative-ai]'
+pip install 'lit-nlp[examples-common,examples-discriminative-ai]'
 
 # To install dependencies for the generative AI examples (Prompt Debugging)
-pip install 'lit-nlp[examples-generative-ai]'
+pip install 'lit-nlp[examples-common,examples-generative-ai]'
 
 # To install dependencies for all examples plus the test suite
-pip install 'lit-nlp[test]'
+pip install 'lit-nlp[examples-common,examples-discriminative-ai,examples-generative-ai,umap,test]'
 ```
 
 ### Install from source
@@ -85,8 +85,8 @@ git clone https://github.com/PAIR-code/lit.git
 cd lit
 ```
 
-Note: be sure you are running Python 3.9+. If you have a different version on
-your system, use the `conda` instructions below to set up a Python 3.9
+Note: be sure you are running Python 3.12+. If you have a different version on
+your system, use the `conda` instructions below to set up a Python 3.12
 environment.
 
 Set up a Python environment with `venv` (or your preferred environment manager).
@@ -97,7 +97,7 @@ other optional dependency possibilities in the install with pip section.
 ```sh
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install -e '.[test]'
+python -m pip install -e '.[examples-common,examples-discriminative-ai,examples-generative-ai,umap,test]'
 ```
 
 The LIT repo does not include a distributable version of the LIT app. You must

@@ -149,7 +149,7 @@ how to interpret them:
     open set of values.
 
 This implementation uses Pandas to read a TSV file, but you can also use
-services like [TensorFlow Datasets](https://www.tensorflow.org/datasets) -
+services like [HuggingFace datasets](https://huggingface.co/docs/datasets) -
 simply wrap them in your `__init__()` function.
 
 Note that you can freely add additional features - such as `genre` in the
@@ -160,9 +160,9 @@ interpretation components such as custom metrics.
 ### Transformations
 
 The `Dataset` class also supports a limited set of transformations, similar to
-TensorFlow's
-[tf.data.Dataset](https://www.tensorflow.org/api_docs/python/tf/data/Dataset)
-but more limited in scope and aimed at supporting quick iteration:
+(other but more limited in scope than) pipelines like
+[HuggingFace datasets](https://huggingface.co/docs/datasets) and aimed at
+supporting quick iteration:
 
 *   `Dataset.slice[start:step:end]` will return a new `Dataset` with the same
     spec and a slice of the datapoints.

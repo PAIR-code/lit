@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lit-nlp"
 # LINT.IfChange
-version = "1.3.1"
+version = "1.4.0"
 # LINT.ThenChange(./lit_nlp/package.json)
 authors = [
   { name="Google, LLC", email="lit-dev@google.com" }
@@ -13,7 +13,7 @@ authors = [
 description = "🔥LIT: The Learning Interpretability Tool"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.9"
+requires-python = ">=3.12,<4"
 # LINT.IfChange
 dependencies = [
   "absl-py>=1.4.0",
@@ -24,10 +24,10 @@ dependencies = [
   "google-cloud-translate>=3.11.1",
   "ipython>=7.34.0",
   "Levenshtein>=0.21.1",
-  "matplotlib>=3.7.1",
+  "matplotlib>=3.8.0",
   "ml-collections>=0.1.1",
-  "numpy>=1.24.1,<2.0.0",
-  "pandas[output-formatting]>=2.0.3",
+  "numpy>=2.1.0,<3",
+  "pandas[output-formatting]>=2.2.0,<4",
   "Pillow>=10.0.0",
   "portpicker>=1.5.2",
   "requests>=2.31.0",
@@ -36,7 +36,7 @@ dependencies = [
   "saliency>=0.1.3",
   "scikit-learn>=1.0.2",
   "scipy>=1.10.1",
-  "shap>=0.42.0,<0.46.0",
+  "shap>=0.52.0",
   "six>=1.16.0",
   "termcolor>=2.3.0",
   "tqdm>=4.64.0",
@@ -53,7 +53,9 @@ classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: JavaScript",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Topic :: Scientific/Engineering :: Information Analysis",
   "Topic :: Scientific/Engineering :: Visualization",
@@ -72,48 +74,44 @@ keywords = [
   "deep learning",
   "visualization",
   "visual analytics",
-  "tensorflow",
-  "tf",
   "torch",
 ]
 
 [project.optional-dependencies]
+# NOTE: Extras are ADDITIVE and disjoint: no package is listed in more than
+# one extra, and extras never depend on each other (poetry#10447 rejects
+# self-referential extras, and duplicated deps across extras trigger a
+# full re-resolution per overlap in Poetry's solver). Install the combination
+# you need, e.g. 'lit-nlp[examples-common,examples-discriminative-ai]'.
+# The "-r" chains in requirements_examples_*.txt express the intended combos;
+# keep the union of all extras in sync with the union of those files.
 # LINT.IfChange
 examples-common = [
   "gunicorn>=20.1.0",
-  "tensorflow>=2.16.0",
-  "transformers>=4.27.1",
+  "torch>=2.0.0",
+  "transformers>=4.27.1,<5",
 ]
 # LINT.ThenChange(./requirements_examples_common.txt)
 # LINT.IfChange
 examples-discriminative-ai = [
-  "lit-nlp[examples-common]",
-  "tensorflow-datasets>=4.9.0",
-  "tf-keras>=2.16",
+  "datasets>=3.0,<4",
+  "huggingface-hub>=0.25.0,<1.0",
 ]
 # LINT.ThenChange(./requirements_examples_discriminative_ai.txt)
 # LINT.IfChange
 examples-generative-ai = [
-  "lit-nlp[examples-common]",
   "google-cloud-aiplatform>=1.60.0",
-  "keras>=3.0.0",
-  "keras-nlp>=0.14.0",
-  "sentencepiece==0.1.99",
-  "tensorflow-text>=2.16.0",
-  "torch>=2.0.0",
+  "sentencepiece>=0.2.0,<0.3",
   "vertexai>=1.49.0",
 ]
 # LINT.ThenChange(./requirements_examples_generative_ai.txt)
 umap = [
-  "umap-learn==0.5.6"
+  "umap-learn>=0.5.9,<0.6"
 ]
 # LINT.IfChange
 test = [
-  "lit-nlp[examples-discriminative-ai]",
-  "lit-nlp[examples-generative-ai]",
-  "lit-nlp[umap]",
   "lime==0.2.0.1",
-  "pytest>=7.4.0,<8.0.0",
+  "pytest>=8.0,<10",
   "webtest>=2.0",
 ]
 # LINT.ThenChange(./requirements_test.txt)

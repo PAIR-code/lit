@@ -15,6 +15,6 @@
 # LINT.IfChange
 -r requirements_examples_common.txt
 
-tensorflow-datasets>=4.9.0
-tf-keras>=2.16
+datasets>=3.0,<4
+huggingface-hub>=0.25.0,<1.0
 # LINT.ThenChange(./pyproject.toml)

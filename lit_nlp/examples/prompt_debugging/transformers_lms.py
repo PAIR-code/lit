@@ -7,11 +7,9 @@ functions to predict a batch of examples and extract information such as
 hidden states and attention.
 """
 from collections.abc import Sequence
-import enum
 import functools
 from typing import Any, Mapping
 
-from absl import logging
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.prompt_debugging import constants as pd_constants
@@ -19,45 +17,19 @@ from lit_nlp.examples.prompt_debugging import utils as pd_utils
 from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
 import numpy as np
+import torch
 import transformers
-
-# pylint: disable=g-import-not-at-top
-# pytype: disable=import-error
-try:
-  import tensorflow as tf
-except (ModuleNotFoundError, ImportError):
-  logging.warning("TensorFlow is not available.")
-
-try:
-  import torch
-except (ModuleNotFoundError, ImportError):
-  logging.warning("PyTorch is not available.")
-# pytype: enable=import-error
-# pylint: enable=g-import-not-at-top
 
 
 _PYTORCH = "torch"
-_TENSORFLOW = "tensorflow"
-# HuggingFace uses two letter abbreviations for pytorch and tensorflow.
+# HuggingFace uses two letter abbreviations for pytorch.
 _HF_PYTORCH = "pt"
-_HF_TENSORFLOW = "tf"
 
-
-@enum.unique
-class MLFramework(enum.Enum):
-  """The supported deep learning frameworks."""
-
-  PT = _PYTORCH
-  TF = _TENSORFLOW
-
-
-SUPPORTED_ML_RUNTIMES = [framework.value for framework in MLFramework]
+SUPPORTED_ML_RUNTIMES = [_PYTORCH]
 
 
 class HFBaseModel(lit_model.BatchedModel):
   """Base class for HF generative, salience, tokenizer model wrappers."""
-
-  # Enum str values for entries in MLFramework, used for init_spec and logging.
 
   @property
   def num_layers(self):
@@ -93,8 +65,7 @@ class HFBaseModel(lit_model.BatchedModel):
       model_name_or_path: gpt2, gpt2-medium, gpt2-large, distilgpt2,
         meta-llama/Llama-2-7b-hf, mistralai/Mistral-7B-v0.1, etc.
       batch_size: the number of items to process per `predict_minibatch` call.
-      framework: the deep learning framework, only "tensorflow" and "torch"
-        are supported.
+      framework: the deep learning framework, only "torch" is supported.
       model: an initialized transformer model.
       tokenizer: an initialized tokenizer.
     """
@@ -104,14 +75,10 @@ class HFBaseModel(lit_model.BatchedModel):
       self.model = model
       self.tokenizer = tokenizer
       # Check if the HF model object's framework is supported here.
-      if model.framework == _HF_PYTORCH:
-        self.framework = MLFramework.PT
-      elif model.framework == _HF_TENSORFLOW:
-        self.framework = MLFramework.TF
-      else:
+      if model.framework != _HF_PYTORCH:
         raise ValueError(
             f"The HuggingFace model framework `{model.framework}` is not"
-            " supported."
+            " supported; only PyTorch ('pt') is supported."
         )
     else:
       # Normally path is a directory; if it's an archive file, download and
@@ -136,25 +103,18 @@ class HFBaseModel(lit_model.BatchedModel):
       # AutoTokenizer.from_pretrained() above it will create a new token with
       # with id = max_vocab_length and cause out-of-bounds errors in
       # the embedding lookup.
-      if framework == _PYTORCH:
-        auto_model = transformers.AutoModelForCausalLM
-        self.framework = MLFramework.PT
-      elif framework == _TENSORFLOW:
-        auto_model = transformers.TFAutoModelForCausalLM
-        self.framework = MLFramework.TF
-      else:
+      if framework != _PYTORCH:
         raise ValueError(
             f"The provided value `{framework}` for arg `framework` is not"
             f" supported, please choose from {SUPPORTED_ML_RUNTIMES}."
         )
-      self.model = auto_model.from_pretrained(
+      self.model = transformers.AutoModelForCausalLM.from_pretrained(
           model_name_or_path,
           output_hidden_states=True,
           output_attentions=False,
       )
-    if self.framework == MLFramework.PT:
-      self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
-      self.model = self.model.to(self.device)
+    self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    self.model = self.model.to(self.device)
     self.embedding_table = self.model.get_input_embeddings()
     self.tokenizer.pad_token = self.tokenizer.eos_token
     self.batch_size = batch_size
@@ -263,22 +223,18 @@ class HFGenerativeModel(HFBaseModel):
 
     Returns:
       a dict of the model outputs, including the generated texts and auxiliary
-        data in numpy arrays (could come from torch or tensorflow, depending on
-        the transformer backend).
+        data in numpy arrays.
     """
     encoded_inputs = self.tokenizer(
         [ex["prompt"] for ex in inputs],
-        return_tensors=(
-            _HF_PYTORCH if self.framework == MLFramework.PT else _HF_TENSORFLOW
-        ),
+        return_tensors=_HF_PYTORCH,
         add_special_tokens=True,
         padding="longest",
         truncation="longest_first",
     )
     batch_size, ntok_in = encoded_inputs["input_ids"].shape
 
-    if self.framework == MLFramework.PT:
-      encoded_inputs = encoded_inputs.to(self.device)
+    encoded_inputs = encoded_inputs.to(self.device)
 
     outputs = self.model.generate(**encoded_inputs, max_length=self.max_length)
 
@@ -291,12 +247,9 @@ class HFGenerativeModel(HFBaseModel):
         outputs[:, -ntok_out:], skip_special_tokens=True
     )
 
-    if self.framework == MLFramework.PT:
-      with torch.no_grad():
-        # Input embeddings: <float>[batch_size, num_tokens, emb_dim]
-        embeddings = self.embedding_table(outputs).cpu().to(torch.float)
-    else:
-      embeddings = self.embedding_table(outputs)
+    with torch.no_grad():
+      # Input embeddings: <float>[batch_size, num_tokens, emb_dim]
+      embeddings = self.embedding_table(outputs).cpu().to(torch.float)
 
     return {
         "embs": embeddings.numpy(),
@@ -350,71 +303,6 @@ class HFSalienceModel(HFBaseModel):
         axis=0,
     )
     return padded_target_masks
-
-  def _pred_tf(self, encoded_inputs, target_masks):
-    """Predicts one batch of tokenized text using TF.
-
-    Also performs some batch-level post-processing in TF.
-    Single-example postprocessing is done in _postprocess(), and operates on
-    numpy arrays.
-
-    Args:
-      encoded_inputs: output of self.tokenizer()
-      target_masks: list(array_like) of binary (0/1) masks for each input
-
-    Returns:
-      payload: Dictionary with items described above, each as single Tensor.
-    """
-    input_ids = encoded_inputs["input_ids"]
-
-    # <tf.int32>[batch_size, num_tokens]; ignore the last one in each row.
-    target_ids = tf.roll(input_ids, shift=-1, axis=1)
-    ##
-    # Process target masks
-    padded_target_masks = tf.constant(
-        self._left_pad_target_masks(target_ids.shape[1], target_masks),
-        dtype=tf.bool,
-    )
-    # Shift masks back so they align with target_ids.
-    loss_mask = tf.roll(padded_target_masks, shift=-1, axis=1)
-
-    with tf.GradientTape(watch_accessed_variables=False) as tape:
-      # We need to run the embedding layer ourselves so we can trace it.
-      # See here for how the model normally does this:
-      # https://github.com/huggingface/transformers/blob/v4.29.2/src/transformers/models/gpt2/modeling_tf_gpt2.py#L450
-      embs = self.embedding_table(input_ids)
-      tape.watch(embs)
-
-      out = self.model(
-          input_ids=None,
-          inputs_embeds=embs,
-          attention_mask=encoded_inputs["attention_mask"],
-      )
-
-      loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(
-          from_logits=True, reduction="none"
-      )
-      # <tf.float>[batch_size, num_tokens]
-      per_token_loss = loss_fn(target_ids, out.logits)
-      masked_loss = per_token_loss * tf.cast(loss_mask, per_token_loss.dtype)
-
-    grads = tape.gradient(
-        masked_loss, embs
-    )  # <tf.float>[batch_size, num_tokens, hdim]
-
-    grad_l2 = tf.norm(grads, axis=2)  # <tf.float>[batch_size, num_tokens]
-    grad_dot_input = tf.reduce_sum(
-        grads * embs, axis=2
-    )  # <tf.float>[batch_size, num_tokens]
-
-    batched_outputs = {
-        "input_ids": input_ids,
-        "attention_mask": encoded_inputs["attention_mask"],
-        pd_constants.FieldNames.GRAD_NORM: grad_l2,
-        pd_constants.FieldNames.GRAD_DOT_INPUT: grad_dot_input,
-    }
-
-    return batched_outputs
 
   def _pred_pt(self, encoded_inputs, target_masks):
     """Predicts one batch of tokenized text using PyTorch.
@@ -504,9 +392,7 @@ class HFSalienceModel(HFBaseModel):
     ]
     encoded_inputs = self.tokenizer(
         texts,
-        return_tensors=_HF_PYTORCH
-        if self.framework == MLFramework.PT
-        else _HF_TENSORFLOW,
+        return_tensors=_HF_PYTORCH,
         add_special_tokens=True,
         padding="longest",
         truncation="longest_first",
@@ -516,10 +402,7 @@ class HFSalienceModel(HFBaseModel):
     ]
 
     # Get the predictions.
-    if self.framework == MLFramework.PT:
-      batched_outputs = self._pred_pt(encoded_inputs, target_masks)
-    else:
-      batched_outputs = self._pred_tf(encoded_inputs, target_masks)
+    batched_outputs = self._pred_pt(encoded_inputs, target_masks)
 
     # Convert to numpy for post-processing.
     detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
@@ -560,16 +443,14 @@ class HFTokenizerModel(HFBaseModel):
     ]
     encoded_inputs = self.tokenizer(
         texts,
-        return_tensors=_HF_PYTORCH
-        if self.framework == MLFramework.PT
-        else _HF_TENSORFLOW,
+        return_tensors=_HF_PYTORCH,
         add_special_tokens=True,
         padding="longest",
         truncation="longest_first",
     )
     batched_outputs = {
-        "input_ids": encoded_inputs["input_ids"],
-        "attention_mask": encoded_inputs["attention_mask"],
+        "input_ids": encoded_inputs["input_ids"].cpu(),
+        "attention_mask": encoded_inputs["attention_mask"].cpu(),
     }
     # Convert to numpy for post-processing.
     detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}

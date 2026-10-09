@@ -228,18 +228,28 @@ class TCAVTest(parameterized.TestCase):
     self.assertAlmostEqual(0.5, result)
 
   def test_get_trained_cav(self):
+    # CAV magnitudes depend on the SVM solver's regularization scaling, which
+    # varies across scikit-learn versions, so compare unit-normalized
+    # directions.
+    def _unit(cav):
+      return np.asarray(cav) / np.linalg.norm(cav)
+
     # 1D inputs.
     x = [[1], [1], [1], [2], [1], [1], [-1], [-1], [-2], [-1], [-1]]
     y = [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0]
     cav, accuracy = self.tcav.get_trained_cav(x, y, 0.33, random_state=0)
-    np.testing.assert_almost_equal(np.array([[19.08396947]]), cav)
+    np.testing.assert_almost_equal(
+        _unit(np.array([[19.08396947]])), _unit(cav)
+    )
     self.assertAlmostEqual(1.0, accuracy)
 
     # 2D inputs.
     x = [[-8, 1], [5, 3], [3, 6], [-2, 5], [-8, 10], [10, -5]]
     y = [1, 0, 0, 1, 1, 0]
     cav, accuracy = self.tcav.get_trained_cav(x, y, 0.33, random_state=0)
-    np.testing.assert_almost_equal(np.array([[-77.89678676, 9.73709834]]), cav)
+    np.testing.assert_almost_equal(
+        _unit(np.array([[-77.89678676, 9.73709834]])), _unit(cav)
+    )
     self.assertAlmostEqual(1.0, accuracy)
 
   def test_compute_local_scores(self):

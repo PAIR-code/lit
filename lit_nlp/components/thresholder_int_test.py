@@ -14,6 +14,8 @@
 # ==============================================================================
 """Tests for lit_nlp.components.thresholder."""
 
+import os
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.api import dataset as lit_dataset
@@ -22,12 +24,10 @@ from lit_nlp.components import thresholder
 from lit_nlp.examples.glue import models as glue_models
 from lit_nlp.lib import caching  # for hash id fn
 
-
-from lit_nlp.lib import file_cache
-BERT_TINY_PATH = file_cache.cached_path(
-    'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz',  # pylint: disable=line-too-long
-    extract_compressed_file=True,
+_TESTDATA_PATH = os.path.join(
+    os.path.dirname(glue_models.__file__), 'testdata'
 )
+BERT_TINY_PATH = os.path.join(_TESTDATA_PATH, 'sst2_tiny')
 
 
 _EXAMPLES = [

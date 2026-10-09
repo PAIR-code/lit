@@ -38,17 +38,16 @@ _QUICKSTART = flags.DEFINE_bool(
 _MODELS = flags.DEFINE_list(
     "models",
     [
-        "sst2-tiny:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
-        "sst2-base:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_base.tar.gz",
-        "stsb:stsb:https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_base.tar.gz",
-        "mnli:mnli:https://storage.googleapis.com/what-if-tool-resources/lit-models/mnli_base.tar.gz",
+        "sst2:sst2:textattack/bert-base-uncased-SST-2",
+        "stsb:stsb:Alireza1044/albert-base-v2-stsb",
+        "mnli:mnli:textattack/bert-base-uncased-MNLI",
     ],
     (
         "List of models to load, as <name>:<task>:<path>. See MODELS_BY_TASK"
-        " for available tasks. Path should be the output of saving a"
-        " transformers model, e.g. model.save_pretrained(path) and"
-        " tokenizer.save_pretrained(path). Remote .tar.gz files will be"
-        " downloaded and cached locally."
+        " for available tasks. Path should be a HuggingFace model name, or the"
+        " output of saving a transformers model, e.g."
+        " model.save_pretrained(path) and tokenizer.save_pretrained(path)."
+        " Remote .tar.gz files will be downloaded and cached locally."
     ),
 )
 
@@ -68,10 +67,10 @@ MODELS_BY_TASK = {
 
 # Pre-specified set of small models, which will load and run much faster.
 QUICK_START_MODELS = (
-    "sst2-tiny:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
-    "sst2-small:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_small.tar.gz",
-    "stsb-tiny:stsb:https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_tiny.tar.gz",
-    "mnli-small:mnli:https://storage.googleapis.com/what-if-tool-resources/lit-models/mnli_small.tar.gz",
+    "sst2-tiny:sst2:philschmid/tiny-bert-sst2-distilled",
+    "sst2-base:sst2:textattack/bert-base-uncased-SST-2",
+    "stsb:stsb:Alireza1044/albert-base-v2-stsb",
+    "mnli:mnli:textattack/bert-base-uncased-MNLI",
 )
 
 

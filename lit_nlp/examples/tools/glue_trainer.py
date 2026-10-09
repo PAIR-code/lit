@@ -14,7 +14,7 @@ accuracy in the low 80s on SST-2.
 
 Note: you don't have to use this trainer to use LIT; the classifier
 implementation is just a wrapper around HuggingFace Transformers, using
-AutoTokenizer, AutoConfig, and TFAutoModelForSequenceClassification, and can
+AutoTokenizer, AutoConfig, and AutoModelForSequenceClassification, and can
 load anything compatible with those classes.
 """
 
@@ -27,9 +27,6 @@ from absl import logging
 from lit_nlp.examples.glue import data as glue_data
 from lit_nlp.examples.glue import models as glue_models
 from lit_nlp.lib import serialize
-import tf_keras as keras
-
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 _ENCODER_NAME = flags.DEFINE_string(
     "encoder_name", "bert-base-uncased",
@@ -47,37 +44,6 @@ _SAVE_INTERMEDIATES = flags.DEFINE_bool(
 FLAGS = flags.FLAGS
 
 
-def history_to_dict(keras_history):
-  return {
-      "epochs": keras_history.epoch,
-      "history": keras_history.history,
-      "params": keras_history.params,
-      "optimizer_params": keras_history.model.optimizer.get_config(),
-  }
-
-
-class EpochSaverCallback(keras.callbacks.Callback):
-  """Save model at the beginning of training and after every epoch.
-
-  Similar to keras.callbacks.ModelCheckpoint, but this allows us to specify
-  a custom save fn to call, such as the HuggingFace model.save() which writes
-  .h5 files and config information.
-  """
-
-  def __init__(self, save_path_base: str, save_fn=None):
-    super().__init__()
-    self.save_path_base = save_path_base
-    self.save_fn = save_fn or self.model.save
-
-  def on_train_begin(self, logs=None):
-    self.on_epoch_end(-1, logs=logs)  # write epoch-0
-
-  def on_epoch_end(self, epoch, logs=None):
-    # Save path 1-indexed = # of completed epochs.
-    save_path = os.path.join(self.save_path_base, f"epoch-{epoch+1}")
-    self.save_fn(save_path)
-
-
 def train_and_save(model,
                    train_data,
                    val_data,
@@ -85,26 +51,28 @@ def train_and_save(model,
                    save_intermediates=False,
                    **train_kw):
   """Run training and save model."""
-  # Set up logging for TensorBoard. To view, run:
-  #   tensorboard --log_dir=<train_path>/tensorboard
-  keras_callbacks = [
-      keras.callbacks.TensorBoard(
-          log_dir=os.path.join(train_path, "tensorboard")
-      )
-  ]
-  if save_intermediates:
-    keras_callbacks.append(EpochSaverCallback(train_path, save_fn=model.save))
+
+  def epoch_saver(epoch, logs):
+    del logs  # unused
+    if not save_intermediates:
+      return
+    # Save path 1-indexed = # of completed epochs.
+    save_path = os.path.join(train_path, f"epoch-{epoch+1}")
+    os.makedirs(save_path, exist_ok=True)
+    model.save(save_path)
+
   history = model.train(
       train_data.examples,
       validation_inputs=val_data.examples,
-      keras_callbacks=keras_callbacks,
+      on_epoch_end=epoch_saver,
       **train_kw)
 
   # Save training history too, since this is human-readable and more concise
   # than the TensorBoard log files.
+  os.makedirs(train_path, exist_ok=True)
   with open(os.path.join(train_path, "train.history.json"), "w") as fd:
     # Use LIT's custom JSON encoder to handle dicts containing NumPy data.
-    fd.write(serialize.to_json(history_to_dict(history), simple=True, indent=2))
+    fd.write(serialize.to_json(history, simple=True, indent=2))
 
   model.save(train_path)
   logging.info("Saved model files: \n  %s",

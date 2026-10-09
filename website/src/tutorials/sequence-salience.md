@@ -52,7 +52,7 @@ All examples in this tutorial use the [Gemma][gemma] LLM as the analysis target.
 Most of the time, this is Gemma Instruct 2B, but we also use Gemma Instruct 7B
 in Case Study 3; [more info about variants][gemma_variants] is available online.
 LIT supports additional LLMs, including [Llama 2][llama] and [Mistral][mistral],
-via the HuggingFace Transformers and KerasNLP libraries.
+via the HuggingFace Transformers library.
 
 This tutorial was adapted from and expands upon LIT's contributions to the
 [Responsible Generative AI Tookit][rai_toolkit] and the related
@@ -421,8 +421,7 @@ for side-by-side comparison and datapoint editing.
 Salience methods for LLMs is an [active][salience_research_1]
 [research][salience_research_1] area. The LIT team has provided reference
 implementations for computing gradient-based salience&mdash;
-[Grad L2 Norm][grad_norm] and [Grad · Input][grad_dot]&mdash;for LLMs in two
-popular frameworks: [KerasNLP][lit_keras] and
+[Grad L2 Norm][grad_norm] and [Grad · Input][grad_dot]&mdash;for LLMs using
 [HuggingFace Transformers][lit_hf].
 
 There is considerable opportunity to research how the model analysis foundations
@@ -472,7 +471,6 @@ helpful guides that can help you develop better prompts, including:
 [lit_colab]: https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb
 [lit_hf]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/transformers_lms.py
 [lit_issues]: https://github.com/PAIR-code/lit/issues
-[lit_keras]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/keras_lms.py
 [lit_sxs]: ../../documentation/ui_guide.html#comparing-datapoints
 [llama]: https://llama.meta.com/
 [main_toolbar]: ../../documentation/ui_guide.html#main-toolbar
