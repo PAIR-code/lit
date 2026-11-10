@@ -3,7 +3,7 @@ import base64
 import io
 from typing import Optional
 
-import matplotlib.cm as plt_cm
+import matplotlib
 import numpy as np
 from PIL import Image as PILImage
 from PIL import ImageEnhance as PILImageEnhance
@@ -125,7 +125,7 @@ def overlay_pixel_saliency(image_str: str, saliency: np.ndarray, cm_name: str,
     norm_saliency = normalize_unsigned_saliency(clipped_saliency)
 
   # Map saliency to RGB values.
-  cm = plt_cm.get_cmap(cm_name)
+  cm = matplotlib.colormaps.get_cmap(cm_name)
   saliency_bytes = cm(norm_saliency)
 
   # Assign alpha values.
