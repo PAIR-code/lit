@@ -499,6 +499,7 @@ export class GroupService extends LitService {
   getFeatureValForInput(
     bins: NumericFeatureBins, d: IndexedInput, feature: string): string | null {
     const isNumerical = this.numericalFeatureNames.includes(feature);
+    // @ts-ignore
     return isNumerical ? this.getNumericalBinForExample(bins, d, feature) :
                           this.dataService.getVal(d.id, feature);
   }

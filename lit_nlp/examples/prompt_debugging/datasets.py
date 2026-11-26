@@ -109,7 +109,7 @@ _plaintext_prompts = functools.partial(  # pylint: disable=invalid-name
 )
 # Hack: normally dataset loaders are a class object which has a __name__,
 # rather than a functools.partial
-_plaintext_prompts.__name__ = 'PlaintextSents'
+_plaintext_prompts.__name__ = 'PlaintextSents'  # pyrefly: ignore[missing-attribute]
 
 
 def get_datasets(

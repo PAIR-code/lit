@@ -84,19 +84,20 @@ def get_classifications(
       pred_idxs.append(pred_idx)
   else:
     pred_idxs = [np.argmax(p) for p in preds]
-  return pred_idxs
+  return pred_idxs  # pyrefly: ignore[bad-return]
 
 
 class ClassificationInterpreter(lit_components.Interpreter):
   """Calculates and returns classification results, using thresholds."""
 
-  def run(  # pytype: disable=signature-mismatch  # overriding-parameter-type-checks
+  def run(  # pyrefly: ignore[bad-override]
       self,
       inputs: list[JsonDict],
       model: lit_model.Model,
       dataset: lit_dataset.IndexedDataset,
       model_outputs: Optional[list[JsonDict]] = None,
-      config: Optional[JsonDict] = None):
+      config: Optional[JsonDict] = None,
+  ):
 
     # Find the prediction field key in the model output to use for calculations.
     output_spec = model.output_spec()

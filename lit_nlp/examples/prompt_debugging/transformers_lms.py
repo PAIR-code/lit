@@ -22,17 +22,15 @@ import numpy as np
 import transformers
 
 # pylint: disable=g-import-not-at-top
-# pytype: disable=import-error
 try:
   import tensorflow as tf
 except (ModuleNotFoundError, ImportError):
   logging.warning("TensorFlow is not available.")
 
 try:
-  import torch
+  import torch  # pyrefly: ignore[missing-import]
 except (ModuleNotFoundError, ImportError):
   logging.warning("PyTorch is not available.")
-# pytype: enable=import-error
 # pylint: enable=g-import-not-at-top
 
 
@@ -283,7 +281,7 @@ class HFGenerativeModel(HFBaseModel):
     outputs = self.model.generate(**encoded_inputs, max_length=self.max_length)
 
     if isinstance(outputs, transformers.utils.ModelOutput):
-      outputs = outputs.sequences
+      outputs = outputs.sequences  # pyrefly: ignore[missing-attribute]
 
     ntok_out = outputs.shape[1] - ntok_in
 
@@ -466,7 +464,7 @@ class HFSalienceModel(HFBaseModel):
     # Remove the grad function from embs.
     embs = embs.detach()
     grad_l2 = torch.norm(grads, dim=2)  # [batch_size, num_tokens]
-    grad_dot_input = torch.sum(grads * embs, axis=2)  # [batch_size, num_tokens]
+    grad_dot_input = torch.sum(grads * embs, axis=2)  # [batch_size, num_tokens]  # pyrefly: ignore[no-matching-overload]
 
     batched_outputs = {
         "input_ids": input_ids.cpu().to(torch.int),

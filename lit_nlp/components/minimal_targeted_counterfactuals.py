@@ -178,12 +178,13 @@ class TabularMTC(lit_components.Generator):
     original_pred = list(model.predict([example]))[0]
 
     # Find dataset examples that are flips.
-    filtered_examples = self._filter_ds_examples(  # pytype: disable=wrong-arg-types  # enable-nested-classes
-        dataset=dataset,
+    filtered_examples = self._filter_ds_examples(
+        dataset=dataset,  # pyrefly: ignore[bad-argument-type]
         model=model,
         reference_output=original_pred,
         pred_key=pred_key,
-        regression_thresh=regression_thresh)
+        regression_thresh=regression_thresh,
+    )
 
     supported_field_names = self._find_all_fields_to_consider(
         ds_spec=dataset.spec(),
@@ -625,7 +626,7 @@ class TabularMTC(lit_components.Generator):
         argmax = np.argmax(predicted_value)
         pred_field = cast(lit_types.MulticlassPreds,
                           model_output_spec[pred_key])
-        label = pred_field.vocab[argmax]
+        label = pred_field.vocab[argmax]  # pyrefly: ignore[bad-index]
         example[parent] = label
       else:
         example[parent] = predicted_value

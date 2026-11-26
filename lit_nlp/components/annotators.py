@@ -48,7 +48,7 @@ class PerFieldAnnotator(lit_components.Annotator):
       # Do remap of inputs based on input name needed by annotator.
       ds_keys = utils.find_spec_keys(dataset.spec(), type(input_type))
       for ds_key in ds_keys:
-        temp_ds = lit_dataset.Dataset(examples=inputs, base=dataset)
+        temp_ds = lit_dataset.Dataset(examples=inputs, base=dataset)  # pyrefly: ignore[bad-argument-type]
         datasets[ds_key] = temp_ds.remap({ds_key: input_name})
 
     for ds_key, ds in datasets.items():

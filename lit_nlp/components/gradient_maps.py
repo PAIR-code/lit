@@ -88,7 +88,7 @@ class GradientNorm(lit_components.Interpreter):
       result: dict[str, dtypes.TokenSalience] = {}
       for grad_field in grad_fields:
         token_field = cast(types.TokenGradients, output_spec[grad_field]).align
-        tokens = o[token_field]
+        tokens = o[token_field]  # pyrefly: ignore[bad-index]
         scores = self._interpret(o[grad_field], tokens)
         result[grad_field] = dtypes.TokenSalience(tokens, scores)
       all_results.append(result)
@@ -167,10 +167,10 @@ class GradientDotInput(lit_components.Interpreter):
       for grad_field in grad_fields:
         embeddings_field = cast(types.TokenGradients,
                                 output_spec[grad_field]).grad_for
-        scores = self._interpret(o[grad_field], o[embeddings_field])
+        scores = self._interpret(o[grad_field], o[embeddings_field])  # pyrefly: ignore[bad-index]
 
         token_field = cast(types.TokenGradients, output_spec[grad_field]).align
-        tokens = o[token_field]
+        tokens = o[token_field]  # pyrefly: ignore[bad-index]
         result[grad_field] = dtypes.TokenSalience(tokens, scores)
       all_results.append(result)
 
@@ -239,15 +239,15 @@ class IntegratedGradients(lit_components.Interpreter):
       embeddings_field = field_spec.grad_for
       grad_key = field_spec.grad_target_field_key
 
-      if not isinstance(output_spec.get(tokens_field), types.Tokens):
+      if not isinstance(output_spec.get(tokens_field), types.Tokens):  # pyrefly: ignore[bad-argument-type]
         logging.info('Skipping %s. Invalid tokens field, %s.', str(f),
                      str(tokens_field))
         continue
 
       is_embs_valid = (
-          isinstance(input_spec.get(embeddings_field),
+          isinstance(input_spec.get(embeddings_field),  # pyrefly: ignore[bad-argument-type]
                      types.TokenEmbeddings) and
-          isinstance(output_spec.get(embeddings_field), types.TokenEmbeddings))
+          isinstance(output_spec.get(embeddings_field), types.TokenEmbeddings))  # pyrefly: ignore[bad-argument-type]
       if not is_embs_valid:
         logging.info('Skipping %s. Invalid embeddings field, %s.', str(f),
                      str(tokens_field))
@@ -326,7 +326,7 @@ class IntegratedGradients(lit_components.Interpreter):
       else:
         # If this is not present, should error because we can't infer
         # what class to use.
-        grad_class = model_input[grad_class_key]
+        grad_class = model_input[grad_class_key]  # pyrefly: ignore[bad-index]
     else:
       grad_class = class_to_explain
 
@@ -335,7 +335,7 @@ class IntegratedGradients(lit_components.Interpreter):
     all_baselines = []
     for embed_field in embeddings_fields:
       # <float32>[num_tokens, emb_size]
-      embeddings = np.array(model_output[embed_field])
+      embeddings = np.array(model_output[embed_field])  # pyrefly: ignore[bad-index]
       all_embeddings.append(embeddings)
 
       # Starts with baseline of zeros. <float32>[num_tokens, emb_size]
@@ -354,7 +354,7 @@ class IntegratedGradients(lit_components.Interpreter):
       # Each entry is <float32>[num_tokens, emb_size]
       updates = {k: interpolated_inputs[k][i] for k in embeddings_fields}
       updates[grad_class_key] = grad_class
-      input_copy = utils.make_modified_input(model_input, updates, 'IG')
+      input_copy = utils.make_modified_input(model_input, updates, 'IG')  # pyrefly: ignore[bad-argument-type]
       inputs_with_embeds.append(input_copy)
 
     embed_outputs = model.predict(inputs_with_embeds)
@@ -392,7 +392,7 @@ class IntegratedGradients(lit_components.Interpreter):
     for grad_field in grad_fields:
       # Format as salience map result.
       token_field = cast(types.TokenGradients, output_spec[grad_field]).align
-      tokens = model_output[token_field]
+      tokens = model_output[token_field]  # pyrefly: ignore[bad-index]
 
       # Only use the scores that correspond to the tokens in this grad_field.
       # The gradients for all input embeddings were concatenated in the order
@@ -401,7 +401,7 @@ class IntegratedGradients(lit_components.Interpreter):
       scores = scores[len(tokens):]  # <float32>[num_remaining_tokens]
 
       assert len(tokens) == len(sliced_scores)
-      result[grad_field] = dtypes.TokenSalience(tokens, sliced_scores)
+      result[grad_field] = dtypes.TokenSalience(tokens, sliced_scores)  # pyrefly: ignore[bad-argument-type]
     return result
 
   def run(self,

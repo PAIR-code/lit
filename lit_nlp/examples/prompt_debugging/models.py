@@ -30,13 +30,13 @@ def _initialize_modeling_environment(
 
     # NOTE: Imported here and not at the top of the file to avoid
     # initialization issues with the environment variables above.
-    import keras  # pylint: disable=g-import-not-at-top
+    import keras  # pylint: disable=g-import-not-at-top  # pyrefly: ignore[missing-import]
 
     keras.config.set_floatx(precision)
   elif dl_runtime == "torch":
     # NOTE: Keras sets precision for all backends with set_floatx(), but for
     # HuggingFace Transformers with PyTorch we need to set it explicitly.
-    import torch  # pylint: disable=g-import-not-at-top # pytype: disable=import-error
+    import torch  # pylint: disable=g-import-not-at-top  # pyrefly: ignore[missing-import]
 
     torch.set_default_dtype(
         torch.bfloat16 if precision == "bfloat16" else torch.float32
@@ -85,7 +85,7 @@ def get_models(
     logging.info("Loading model '%s' from '%s'", model_name, path)
 
     if dl_framework == "kerasnlp":
-      from lit_nlp.examples.prompt_debugging import keras_lms  # pylint: disable=g-import-not-at-top # pytype: disable=import-error
+      from lit_nlp.examples.prompt_debugging import keras_lms  # pylint: disable=g-import-not-at-top  # pyrefly: ignore[missing-module-attribute]
 
       models |= keras_lms.initialize_model_group_for_salience(
           model_name,
@@ -94,7 +94,7 @@ def get_models(
           batch_size=batch_size,
       )
     else:
-      from lit_nlp.examples.prompt_debugging import transformers_lms  # pylint: disable=g-import-not-at-top # pytype: disable=import-error
+      from lit_nlp.examples.prompt_debugging import transformers_lms  # pylint: disable=g-import-not-at-top  # pyrefly: ignore[missing-module-attribute]
 
       models |= transformers_lms.initialize_model_group_for_salience(
           model_name,
@@ -140,7 +140,7 @@ def get_model_loaders(
   }
 
   if dl_framework == "kerasnlp":
-    from lit_nlp.examples.prompt_debugging import keras_lms  # pylint: disable=g-import-not-at-top # pytype: disable=import-error
+    from lit_nlp.examples.prompt_debugging import keras_lms  # pylint: disable=g-import-not-at-top  # pyrefly: ignore[missing-module-attribute]
 
     keras_init_spec: lit_types.Spec = {
         **common_init_spec,
@@ -156,7 +156,7 @@ def get_model_loaders(
         )
     }
   else:
-    from lit_nlp.examples.prompt_debugging import transformers_lms  # pylint: disable=g-import-not-at-top # pytype: disable=import-error
+    from lit_nlp.examples.prompt_debugging import transformers_lms  # pylint: disable=g-import-not-at-top  # pyrefly: ignore[missing-module-attribute]
 
     transformers_init_spec: lit_types.Spec = {
         **common_init_spec,

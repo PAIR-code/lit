@@ -155,10 +155,10 @@ class LitType(metaclass=abc.ABCMeta):
 
     base_cls = globals().get("LitType")
     cls = globals().get(type_name)  # class by name from this module
-    if cls is None or not issubclass(cls, base_cls):
+    if cls is None or not issubclass(cls, base_cls):  # pyrefly: ignore[bad-argument-type]
       raise NameError(f"{type_name} is not a valid LitType.")
 
-    return cls(**{k: d[k] for k in d if k != "__name__"})
+    return cls(**{k: d[k] for k in d if k != "__name__"})  # pyrefly: ignore[not-callable]
 
 Spec = dict[str, LitType]
 
@@ -174,7 +174,7 @@ def _remap_leaf(leaf: LitType, keymap: dict[str, str]) -> LitType:
       k: (keymap.get(v, v) if k in FIELD_REF_ATTRIBUTES else v)
       for k, v in d.items()
   }
-  return leaf.__class__(**d)
+  return leaf.__class__(**d)  # pyrefly: ignore[bad-argument-type]
 
 
 def remap_spec(spec: Spec, keymap: dict[str, str]) -> Spec:
@@ -201,7 +201,7 @@ class StringLitType(LitType):
   Mainly used for string inputs that have special formatting, and should only
   be edited manually.
   """
-  default: str = ""
+  default: str = ""  # pyrefly: ignore[bad-override]
 
   def validate_input(self, value, spec: Spec, example: Input):
     if not isinstance(value, str):
@@ -260,13 +260,13 @@ class GeneratedText(TextSegment):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class ListLitType(LitType):
   """List type."""
-  default: Sequence[Any] = None
+  default: Sequence[Any] = None  # pyrefly: ignore[bad-assignment, bad-override]
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class _StringCandidateList(ListLitType):
   """A list of (text, score) tuples."""
-  default: ScoredTextCandidates = None
+  default: ScoredTextCandidates = None  # pyrefly: ignore[bad-assignment]
 
   def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
                       input_spec: Spec, dataset_spec: Spec,
@@ -373,9 +373,9 @@ class TokenTopKPreds(ListLitType):
 
   The inner list should contain (word, probability) in descending order.
   """
-  default: Sequence[ScoredTextCandidates] = None
+  default: Sequence[ScoredTextCandidates] = None  # pyrefly: ignore[bad-assignment]
 
-  align: str = None  # name of a Tokens field in the model output
+  align: str = None  # name of a Tokens field in the model output  # pyrefly: ignore[bad-assignment]
   parent: Optional[str] = None
 
   def _validate_scored_candidates(self, scored_candidates):
@@ -389,7 +389,7 @@ class TokenTopKPreds(ListLitType):
       if scored_candidate[1] is not None:
         if not isinstance(scored_candidate[1], NumericTypes):
           raise ValueError(f"{scored_candidate} second element is not a num")
-        if prev_val < scored_candidate[1]:
+        if prev_val < scored_candidate[1]:  # pyrefly: ignore[unsupported-operation]
           raise ValueError(
               "TokenTopKPreds candidates are not in descending order")
         else:
@@ -414,7 +414,7 @@ class Scalar(LitType):
   """Scalar value, a single float or int."""
   min_val: float = 0
   max_val: float = 1
-  default: float = 0
+  default: float = 0  # pyrefly: ignore[bad-override]
   step: float = .01
 
   def validate_input(self, value, spec: Spec, example: Input):
@@ -464,7 +464,7 @@ class TokenScores(_FloatList):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class ReferenceScores(ListLitType):
   """Score of one or more target sequences."""
-  default: Sequence[float] = None
+  default: Sequence[float] = None  # pyrefly: ignore[bad-assignment]
 
   # name of a TextSegment or ReferenceTexts field in the input
   parent: Optional[str] = None
@@ -504,7 +504,7 @@ class CategoryLabel(StringLitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class _Tensor(LitType):
   """A tensor type."""
-  default: Sequence[float] = None
+  default: Sequence[float] = None  # pyrefly: ignore[bad-assignment, bad-override]
 
   def validate_input(self, value, spec: Spec, example: Input):
     if isinstance(value, list):
@@ -585,7 +585,7 @@ class SpanLabels(ListLitType):
   Span labels can cover more than one token, may not cover all tokens in the
   sentence, and may overlap with each other.
   """
-  default: Sequence[dtypes.SpanLabel] = None
+  default: Sequence[dtypes.SpanLabel] = None  # pyrefly: ignore[bad-assignment]
   align: str  # name of Tokens field
   parent: Optional[str] = None
 
@@ -609,7 +609,7 @@ class EdgeLabels(ListLitType):
   https://github.com/nyu-mll/jiant/tree/master/probing#data-format for more
   details.
   """
-  default: Sequence[dtypes.EdgeLabel] = None
+  default: Sequence[dtypes.EdgeLabel] = None  # pyrefly: ignore[bad-assignment]
   align: str  # name of Tokens field
 
   def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
@@ -636,7 +636,7 @@ class MultiSegmentAnnotations(ListLitType):
   TODO(lit-dev): by default, spans are treated as bytes in this context.
   Make this configurable, if some spans need to refer to tokens instead.
   """
-  default: Sequence[dtypes.AnnotationCluster] = None
+  default: Sequence[dtypes.AnnotationCluster] = None  # pyrefly: ignore[bad-assignment]
   exclusive: bool = False  # if true, treat as candidate list
   background: bool = False  # if true, don't emphasize in visualization
 
@@ -775,7 +775,7 @@ class SubwordOffsets(ListLitType):
 
   offsets[i] should be the index of the first wordpiece for input token i.
   """
-  default: Sequence[int] = None
+  default: Sequence[int] = None  # pyrefly: ignore[bad-assignment]
   align_in: str  # name of field in data spec
   align_out: str  # name of field in model output spec
 
@@ -793,7 +793,7 @@ class SparseMultilabelPreds(_StringCandidateList):
 
   The tuples are of the label and the score.
   """
-  default: ScoredTextCandidates = None
+  default: ScoredTextCandidates = None  # pyrefly: ignore[bad-assignment]
   vocab: Optional[Sequence[str]] = None  # label names
   parent: Optional[str] = None
 
@@ -816,7 +816,7 @@ class SingleFieldMatcher(FieldMatcher):
 
   UI will materialize this to a dropdown-list.
   """
-  default: str = None
+  default: str = None  # pyrefly: ignore[bad-assignment, bad-override]
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -826,7 +826,7 @@ class MultiFieldMatcher(FieldMatcher):
   UI will materialize this to multiple checkboxes. Use this when the user needs
   to pick more than one field in UI.
   """
-  default: Sequence[str] = []  # default names of selected items.
+  default: Sequence[str] = []  # default names of selected items.  # pyrefly: ignore[bad-override]
   select_all: bool = False  # Select all by default (overriddes default).
 
 
@@ -840,20 +840,20 @@ class Salience(LitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenSalience(Salience):
   """Metadata about a returned token salience map."""
-  default: dtypes.TokenSalience = None
+  default: dtypes.TokenSalience = None  # pyrefly: ignore[bad-assignment, bad-override]
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class FeatureSalience(Salience):
   """Metadata about a returned feature salience map."""
-  default: dtypes.FeatureSalience = None
+  default: dtypes.FeatureSalience = None  # pyrefly: ignore[bad-assignment, bad-override]
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class FrameSalience(Salience):
   """Metadata about a returned frame salience map."""
 
-  default: dtypes.FrameSalience = None
+  default: dtypes.FrameSalience = None  # pyrefly: ignore[bad-assignment, bad-override]
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -869,13 +869,13 @@ class ImageSalience(Salience):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class SequenceSalience(Salience):
   """Metadata about a returned sequence salience map."""
-  default: dtypes.SequenceSalienceMap = None
+  default: dtypes.SequenceSalienceMap = None  # pyrefly: ignore[bad-assignment, bad-override]
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class BooleanLitType(LitType):
   """Boolean value."""
-  default: bool = False
+  default: bool = False  # pyrefly: ignore[bad-override]
 
   def validate_input(self, value, spec, example: Input):
     if not isinstance(value, bool):
@@ -916,7 +916,7 @@ class MetricBestValue(dtypes.EnumSerializableAsValues, enum.Enum):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class MetricResult(LitType):
   """Score returned from the computation of a Metric."""
-  default: float = 0
+  default: float = 0  # pyrefly: ignore[bad-override]
   description: str = ""
   best_value: MetricBestValue = MetricBestValue.NONE
 
@@ -934,7 +934,7 @@ class SalienceTargetInfo(LitType):
 
   Value is a dict with keys 'field' (str) and 'index' (Optional[int]).
   """
-  default: Optional[Mapping[str, Any]] = None
+  default: Optional[Mapping[str, Any]] = None  # pyrefly: ignore[bad-override]
 
 
 # LINT.ThenChange(../client/lib/lit_types.ts)

@@ -29,7 +29,7 @@ import wsgiref.handlers
 
 from absl import logging
 import six
-from six.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urlparse  # pyrefly: ignore[missing-source-for-stubs]
 from werkzeug import wrappers
 
 

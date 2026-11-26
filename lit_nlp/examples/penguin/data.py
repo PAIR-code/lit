@@ -38,9 +38,9 @@ class PenguinDataset(lit_dataset.Dataset):
         'culmen_depth_mm': rec['culmen_depth_mm'],
         'culmen_length_mm': rec['culmen_length_mm'],
         'flipper_length_mm': rec['flipper_length_mm'],
-        'island': VOCABS['island'][rec['island']],
-        'sex': VOCABS['sex'][rec['sex']],
-        'species': VOCABS['species'][rec['species']],
+        'island': VOCABS['island'][rec['island']],  # pyrefly: ignore[bad-index]
+        'sex': VOCABS['sex'][rec['sex']],  # pyrefly: ignore[bad-index]
+        'species': VOCABS['species'][rec['species']],  # pyrefly: ignore[bad-index]
     }
 
   def __init__(self, max_examples: Optional[int] = None):

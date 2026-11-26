@@ -18,5 +18,5 @@
 
 gunicorn>=20.1.0
 tensorflow>=2.16.0
-transformers>=4.27.1
+transformers>=4.27.1,<5.0.0
 # LINT.ThenChange(./pyproject.toml)

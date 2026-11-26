@@ -67,7 +67,7 @@ class EpochSaverCallback(keras.callbacks.Callback):
   def __init__(self, save_path_base: str, save_fn=None):
     super().__init__()
     self.save_path_base = save_path_base
-    self.save_fn = save_fn or self.model.save
+    self.save_fn = save_fn or self.model.save  # pyrefly: ignore[missing-attribute]
 
   def on_train_begin(self, logs=None):
     self.on_epoch_end(-1, logs=logs)  # write epoch-0
@@ -93,7 +93,7 @@ def train_and_save(model,
       )
   ]
   if save_intermediates:
-    keras_callbacks.append(EpochSaverCallback(train_path, save_fn=model.save))
+    keras_callbacks.append(EpochSaverCallback(train_path, save_fn=model.save))  # pyrefly: ignore[bad-argument-type]
   history = model.train(
       train_data.examples,
       validation_inputs=val_data.examples,

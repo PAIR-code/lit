@@ -31,13 +31,14 @@ Spec = types.Spec
 class RegressionInterpreter(lit_components.Interpreter):
   """Calculates and returns regression results from model outputs."""
 
-  def run(  # pytype: disable=signature-mismatch  # overriding-parameter-type-checks
+  def run(  # pyrefly: ignore[bad-override]
       self,
       inputs: list[JsonDict],
       model: lit_model.Model,
       dataset: lit_dataset.IndexedDataset,
       model_outputs: Optional[list[JsonDict]] = None,
-      config: Optional[JsonDict] = None):
+      config: Optional[JsonDict] = None,
+  ):
 
     # Find the prediction field key in the model output to use for calculations.
     output_spec = model.output_spec()

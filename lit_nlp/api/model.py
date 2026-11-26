@@ -178,12 +178,12 @@ class Model(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def input_spec(self) -> types.Spec:
     """Return a spec describing model inputs."""
-    return
+    return  # pyrefly: ignore[bad-return]
 
   @abc.abstractmethod
   def output_spec(self) -> types.Spec:
     """Return a spec describing model outputs."""
-    return
+    return  # pyrefly: ignore[bad-return]
 
   def get_embedding_table(self) -> tuple[list[str], np.ndarray]:
     """Return the full vocabulary and embedding table.
@@ -369,7 +369,7 @@ class BatchedRemoteModel(Model):
     Returns:
       list of outputs, following model.output_spec()
     """
-    return
+    return  # pyrefly: ignore[bad-return]
 
 
 class ProjectorModel(BatchedModel, metaclass=abc.ABCMeta):

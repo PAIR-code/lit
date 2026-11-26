@@ -151,7 +151,7 @@ class ProjectionManager(lit_components.Interpreter):
   ) -> ProjectionInterpreter:
     # Ignore pytype warning about abstract methods, since this should always
     # be a subclass of ProjectorModel which has these implemented.
-    projector = self._model_factory(**config.get("proj_kw", {}))  # pytype: disable=not-instantiable
+    projector = self._model_factory(**config.get("proj_kw", {}))
     train_inputs = dataset.examples
 
     # If using input values, then treat inputs as outputs instead of running
@@ -184,7 +184,7 @@ class ProjectionManager(lit_components.Interpreter):
       # Fit a new instance if necessary
       if instance_key not in self._instances:
         self._instances[instance_key] = self._train_instance(
-            model, dataset, config, name=str(instance_key))
+            model, dataset, config, name=str(instance_key))  # pyrefly: ignore[bad-argument-type]
 
       proj_instance = self._instances[instance_key]
       # If projector was just trained, points should be cached.
