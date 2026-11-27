@@ -1,5 +1,23 @@
 # Learning Interpretability Tool Release Notes
 
+## Release 1.3.2
+
+This release enhances the Learning Interpretability Tool (LIT) with support for
+Text-to-Image models. We now support two versions:
+
+Local version – based on [DALL-E](https://github.com/google/flax-dlrm/tree/main/models/dalle) .
+GCP version – built on VertexAI's [Imagen](https://cloud.google.com/vertex-ai/generative-ai/docs/image/overview) models.
+
+### New Stuff
+
+* LIT Text to Image Demos -
+[151f83e](https://github.com/PAIR-code/lit/commit/151f83ea8a7399cf2f1dba3e7cce4fbe402e949a),
+[7c2e754](https://github.com/PAIR-code/lit/commit/7c2e75415c2f8f0587a3635231ef19b1b94bd861),
+[f2bde3d](https://github.com/PAIR-code/lit/commit/f2bde3db2dc567570bbd7691b21ff2100991d8b0),
+[ee87faf](https://github.com/PAIR-code/lit/commit/ee87faf790fb4a40aee21f960e02b7c2bcbc8752)
+
+* Update NumPy to 2.0 -
+[49b85c9](https://github.com/PAIR-code/lit/commit/)
 
 ## Release 1.3.1
 
