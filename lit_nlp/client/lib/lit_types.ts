@@ -90,6 +90,7 @@ export class TextSegment extends StringLitType {
  */
 @registered
 export class ImageBytes extends LitType {
+  resize: boolean = false;
 }
 
 /**
