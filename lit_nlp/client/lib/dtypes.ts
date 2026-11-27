@@ -55,6 +55,11 @@ export interface TokenSalience extends DataTuple {
   salience: number[];  // Parallel to tokens.
 }
 
+/** Dataclass for a salience map over frames in a video. */
+export interface FrameSalience extends DataTuple {
+  salience: {[key: string]: number};
+}
+
 /** Dataclass for a salience map over categorical and/or scalar features. */
 export interface FeatureSalience extends DataTuple {
   salience: {[key: string]: number};

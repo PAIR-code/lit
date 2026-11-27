@@ -537,6 +537,14 @@ export class TokenSalience extends Salience {
 }
 
 /**
+ * Metadata about a returned frame salience map.
+ */
+@registered
+export class FrameSalience extends Salience {
+  override default: FrameSalienceDType |undefined = undefined;
+}
+
+/**
  * Metadata about a returned feature salience map.
  */
 @registered

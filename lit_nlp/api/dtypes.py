@@ -107,6 +107,13 @@ class TokenSalience(DataTuple):
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class FrameSalience(DataTuple):
+  """Dataclass for a salience map over frames in a video."""
+
+  salience: dict[str, float]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class FeatureSalience(DataTuple):
   """Dataclass for a salience map over categorical and/or scalar features."""
   salience: dict[str, float]
